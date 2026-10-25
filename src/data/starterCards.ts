@@ -144,20 +144,20 @@ export const STARTER_CARDS: CategoryCard[] = [
   },
   {
     id: 'everyday-05',
-    title: 'Things That Have Buttons',
+    title: 'Buttons Found on a TV Remote Control',
     deck: 'Everyday',
     difficulty: 'Easy',
     items: [
-      'TV Remote',
-      'Dress Shirt',
-      'Elevator',
-      'Game Controller',
-      'Calculator',
-      'Microwave',
-      'Jeans / Pants',
-      'Vending Machine',
-      'Computer Mouse',
-      'Car Dashboard'
+      'Power (On / Off)',
+      'Volume Up & Down',
+      'Channel Up & Down',
+      'Mute',
+      'Input / Source',
+      'Menu / Home / Guide',
+      'Play / Pause',
+      'Fast Forward & Rewind',
+      'Directional Arrows & OK / Select',
+      'Netflix / Streaming Shortcut Buttons'
     ]
   },
   {
@@ -556,20 +556,38 @@ export const STARTER_CARDS: CategoryCard[] = [
   },
   {
     id: 'geo-03',
-    title: 'World Landmarks',
+    title: 'Iconic Man-Made Monuments & Structures Around the World',
     deck: 'Geography & Nature',
     difficulty: 'Easy',
     items: [
-      'Eiffel Tower',
-      'Statue of Liberty',
+      'Eiffel Tower (Paris)',
+      'Statue of Liberty (New York)',
       'Great Wall of China',
-      'Pyramids of Giza',
-      'Taj Mahal',
-      'Colosseum',
-      'Big Ben',
-      'Machu Picchu',
+      'Great Pyramids of Giza / Sphinx',
+      'Taj Mahal (India)',
+      'Roman Colosseum / Leaning Tower of Pisa',
+      'Big Ben / Tower Bridge (London)',
+      'Machu Picchu / Chichen Itza',
       'Sydney Opera House',
-      'Golden Gate Bridge'
+      'Christ the Redeemer (Rio) / Golden Gate Bridge'
+    ]
+  },
+  {
+    id: 'geo-03b',
+    title: 'Famous Natural Wonders of the World',
+    deck: 'Geography & Nature',
+    difficulty: 'Easy',
+    items: [
+      'Grand Canyon',
+      'Mount Everest',
+      'Great Barrier Reef',
+      'Northern Lights (Aurora Borealis)',
+      'Victoria Falls / Niagara Falls',
+      'Amazon Rainforest / River',
+      'Sahara Desert',
+      'Mount Fuji / Mount Kilimanjaro',
+      'Galápagos Islands',
+      'Old Faithful / Yellowstone'
     ]
   },
   {
@@ -650,20 +668,20 @@ export const STARTER_CARDS: CategoryCard[] = [
   },
   {
     id: 'kids-04',
-    title: 'Things That Can Fly',
+    title: 'Things You See Flying in the Sky',
     deck: 'Kids Mode',
     difficulty: 'Easy',
     items: [
-      'Birds',
-      'Airplane',
+      'Birds (Eagles / Pigeons / Seagulls)',
+      'Passenger Airplane / Jet',
       'Helicopter',
       'Butterfly',
       'Bumblebee',
       'Bat',
-      'Dragonfly',
       'Hot Air Balloon',
       'Kite',
-      'Rocket Ship / Drone'
+      'Rocket / Space Shuttle',
+      'Drone / Blimp'
     ]
   },
 

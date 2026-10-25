@@ -1600,20 +1600,38 @@ export const EXPANSION_CARDS: CategoryCard[] = [
   },
   {
     id: 'idea-geo-04',
-    title: 'Major World Rivers & Mountains',
+    title: 'Famous World Rivers',
     deck: 'Geography & Nature',
     difficulty: 'Medium',
     items: [
-      'Amazon River',
-      'Nile River',
-      'Mississippi River',
-      'Mount Everest',
-      'The Alps',
-      'The Andes',
-      'Rocky Mountains',
-      'Mount Kilimanjaro',
-      'Mount Fuji',
-      'Yangtze / Danube / Thames River'
+      'Nile River (Africa)',
+      'Amazon River (South America)',
+      'Mississippi River (USA)',
+      'Yangtze River (China)',
+      'Thames River (London)',
+      'Seine River (Paris)',
+      'Danube River (Europe)',
+      'Ganges River (India)',
+      'Colorado River (Grand Canyon)',
+      'Rio Grande / Hudson River'
+    ]
+  },
+  {
+    id: 'idea-geo-04b',
+    title: 'Famous Mountains & Mountain Ranges of the World',
+    deck: 'Geography & Nature',
+    difficulty: 'Medium',
+    items: [
+      'Mount Everest / The Himalayas',
+      'The Alps / Matterhorn (Europe)',
+      'Rocky Mountains (North America)',
+      'Andes Mountains (South America)',
+      'Mount Kilimanjaro (Africa)',
+      'Mount Fuji (Japan)',
+      'Appalachian Mountains / Smoky Mountains',
+      'Mount Olympus (Greece)',
+      'Denali / Mount McKinley (Alaska)',
+      'Mount Vesuvius / Mount St. Helens'
     ]
   },
   {
