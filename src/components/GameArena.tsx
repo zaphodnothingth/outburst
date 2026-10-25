@@ -11,12 +11,18 @@ import {
   Volume2,
   VolumeX,
   ArrowRight,
+  ArrowLeft,
   Clock,
   Pause,
   Check,
   Award,
   Zap,
-  Users
+  Users,
+  Flag,
+  Layers,
+  ChevronDown,
+  ChevronUp,
+  Headphones
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -25,8 +31,11 @@ import {
   GameSettings,
   GamePhase,
   TurnLog,
-  MatchRecord
+  MatchRecord,
+  MetaCategoryPreset,
+  GameSnapshot
 } from '../types/game';
+import { META_CATEGORY_PRESETS, DECK_CATEGORIES } from '../data/starterCards';
 import { sound } from '../utils/SoundManager';
 
 interface GameArenaProps {
@@ -36,14 +45,19 @@ interface GameArenaProps {
   playedCardIds: string[];
   onMarkCardPlayed: (cardId: string) => void;
   onResetPlayedCards: () => void;
-  onCompleteMatch: (record: MatchRecord, updatedStats: {
-    teamId: string;
-    points: number;
-    won: boolean;
-    cardsCleared: number;
-  }[]) => void;
+  onCompleteMatch: (
+    record: MatchRecord,
+    updatedStats: {
+      teamId: string;
+      points: number;
+      won: boolean;
+      cardsCleared: number;
+    }[]
+  ) => void;
   onUpdateSettings: (newSettings: GameSettings) => void;
   onOpenTeamSelect: () => void;
+  onPhaseChange?: (phase: GamePhase) => void;
+  quitSignal?: number;
 }
 
 export const GameArena: React.FC<GameArenaProps> = ({
@@ -55,7 +69,9 @@ export const GameArena: React.FC<GameArenaProps> = ({
   onResetPlayedCards,
   onCompleteMatch,
   onUpdateSettings,
-  onOpenTeamSelect
+  onOpenTeamSelect,
+  onPhaseChange,
+  quitSignal
 }) => {
   // Match state
   const [phase, setPhase] = useState<GamePhase>('lobby');
@@ -63,7 +79,9 @@ export const GameArena: React.FC<GameArenaProps> = ({
   const [currentTeamIdx, setCurrentTeamIdx] = useState<number>(0);
   const [scores, setScores] = useState<Record<string, number>>({});
   const [passesLeft, setPassesLeft] = useState<Record<string, number>>({});
-  const [cardsClearedCount, setCardsClearedCount] = useState<Record<string, number>>({});
+  const [cardsClearedCount, setCardsClearedCount] = useState<
+    Record<string, number>
+  >({});
   const [turnsLog, setTurnsLog] = useState<TurnLog[]>([]);
 
   // Active turn state
@@ -73,6 +91,14 @@ export const GameArena: React.FC<GameArenaProps> = ({
   const [stolenIndices, setStolenIndices] = useState<number[]>([]);
   const [stealingTeamId, setStealingTeamId] = useState<string | null>(null);
 
+  // Snapshot history stack for persistent "Back" button
+  const [historyStack, setHistoryStack] = useState<GameSnapshot[]>([]);
+
+  // Collapsible Lobby Sections (compact default so Start button is visible without scrolling!)
+  const [decksExpanded, setDecksExpanded] = useState<boolean>(false);
+  const [teamsExpanded, setTeamsExpanded] = useState<boolean>(false);
+  const [rulesExpanded, setRulesExpanded] = useState<boolean>(false);
+
   // Timer state
   const [timeLeft, setTimeLeft] = useState<number>(settings.timerSeconds);
   const [isPaused, setIsPaused] = useState<boolean>(false);
@@ -80,8 +106,23 @@ export const GameArena: React.FC<GameArenaProps> = ({
 
   const timerRef = useRef<number | null>(null);
 
+  // Notify parent when phase changes so header/nav knows if a match is in progress
+  useEffect(() => {
+    onPhaseChange?.(phase);
+  }, [phase, onPhaseChange]);
+
+  // Listen for confirmed quit signal from top-left Outburst logo or bottom-left Play button
+  useEffect(() => {
+    if (quitSignal && quitSignal > 0) {
+      if (timerRef.current) clearInterval(timerRef.current);
+      setHistoryStack([]);
+      setPhase('lobby');
+    }
+  }, [quitSignal]);
+
   const currentTeam = activeTeams[currentTeamIdx] || activeTeams[0];
-  const nextTeam = activeTeams[(currentTeamIdx + 1) % activeTeams.length] || activeTeams[0];
+  const nextTeam =
+    activeTeams[(currentTeamIdx + 1) % activeTeams.length] || activeTeams[0];
 
   // Filter cards by selected decks
   const deckFilteredCards = availableCards.filter((c) =>
@@ -91,11 +132,86 @@ export const GameArena: React.FC<GameArenaProps> = ({
     (c) => !playedCardIds.includes(c.id)
   );
 
+  // Capture current state before transitioning to next phase
+  const pushSnapshot = () => {
+    const snap: GameSnapshot = {
+      phase,
+      roundNumber,
+      currentTeamIdx,
+      scores: { ...scores },
+      passesLeft: { ...passesLeft },
+      cardsClearedCount: { ...cardsClearedCount },
+      turnsLog: [...turnsLog],
+      currentCard,
+      bonusIndex,
+      guessedIndices: [...guessedIndices],
+      stolenIndices: [...stolenIndices],
+      stealingTeamId,
+      timeLeft
+    };
+    setHistoryStack((prev) => [...prev.slice(-20), snap]);
+  };
+
+  // Persistent Back Button handler
+  const handleStepBack = () => {
+    if (historyStack.length === 0) {
+      if (
+        window.confirm('Return to the Match Setup lobby and cancel this match?')
+      ) {
+        if (timerRef.current) clearInterval(timerRef.current);
+        setPhase('lobby');
+      }
+      return;
+    }
+
+    if (timerRef.current) clearInterval(timerRef.current);
+    const previous = historyStack[historyStack.length - 1];
+    setHistoryStack((prev) => prev.slice(0, -1));
+
+    setPhase(previous.phase);
+    setRoundNumber(previous.roundNumber);
+    setCurrentTeamIdx(previous.currentTeamIdx);
+    setScores(previous.scores);
+    setPassesLeft(previous.passesLeft);
+    setCardsClearedCount(previous.cardsClearedCount);
+    setTurnsLog(previous.turnsLog);
+    setCurrentCard(previous.currentCard);
+    setBonusIndex(previous.bonusIndex);
+    setGuessedIndices(previous.guessedIndices);
+    setStolenIndices(previous.stolenIndices);
+    setStealingTeamId(previous.stealingTeamId);
+    // If stepping back into active timer, pause it so the reader isn't caught off guard
+    setTimeLeft(previous.timeLeft > 0 ? previous.timeLeft : settings.timerSeconds);
+    setIsPaused(previous.phase === 'active');
+  };
+
+  // Select a Meta-Category Preset
+  const handleSelectMetaPreset = (preset: MetaCategoryPreset) => {
+    onUpdateSettings({
+      ...settings,
+      activeMetaPresetId: preset.id,
+      selectedDecks: [...preset.decks]
+    });
+  };
+
+  // Toggle an individual deck chip in the Lobby
+  const handleToggleSingleDeck = (deck: string) => {
+    const exists = settings.selectedDecks.includes(deck);
+    if (exists && settings.selectedDecks.length <= 1) return;
+    const nextDecks = exists
+      ? settings.selectedDecks.filter((d) => d !== deck)
+      : [...settings.selectedDecks, deck];
+    onUpdateSettings({
+      ...settings,
+      activeMetaPresetId: undefined,
+      selectedDecks: nextDecks
+    });
+  };
+
   // Draw a random card
   const drawNextCard = (excludeId?: string): CategoryCard => {
     let pool = unplayedPool.filter((c) => c.id !== excludeId);
     if (pool.length === 0) {
-      // Auto-cycle if all cards in selected decks were played
       pool = deckFilteredCards.filter((c) => c.id !== excludeId);
       if (pool.length === 0) pool = availableCards;
     }
@@ -115,6 +231,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
       initCleared[t.id] = 0;
     });
 
+    setHistoryStack([]);
     setScores(initScores);
     setPassesLeft(initPasses);
     setCardsClearedCount(initCleared);
@@ -122,14 +239,13 @@ export const GameArena: React.FC<GameArenaProps> = ({
     setRoundNumber(1);
     setCurrentTeamIdx(0);
 
-    prepareNextTurn(drawNextCard());
-  };
-
-  const prepareNextTurn = (card: CategoryCard) => {
+    const card = drawNextCard();
     setCurrentCard(card);
     setGuessedIndices([]);
     setStolenIndices([]);
-    setStealingTeamId(activeTeams.length >= 2 ? activeTeams[(currentTeamIdx + 1) % activeTeams.length]?.id : null);
+    setStealingTeamId(
+      activeTeams.length >= 2 ? activeTeams[1]?.id : null
+    );
     setBonusIndex(
       settings.bonusTargetEnabled ? Math.floor(Math.random() * 10) : null
     );
@@ -138,7 +254,6 @@ export const GameArena: React.FC<GameArenaProps> = ({
     setPhase('ready');
   };
 
-  // Update default stealingTeamId when currentTeamIdx changes
   useEffect(() => {
     if (activeTeams.length >= 2) {
       const nextIdx = (currentTeamIdx + 1) % activeTeams.length;
@@ -146,17 +261,29 @@ export const GameArena: React.FC<GameArenaProps> = ({
     }
   }, [currentTeamIdx, activeTeams]);
 
-  // Pass / Skip Card before timer starts
+  // Pass / Skip Card before timer starts (supports both Free Passes and Point Penalty!)
   const handleSkipCard = () => {
     if (!currentTeam || !currentCard) return;
-    const remaining = passesLeft[currentTeam.id] ?? 0;
-    if (remaining <= 0) return;
 
-    sound.playCardSwap();
-    setPassesLeft((prev) => ({
-      ...prev,
-      [currentTeam.id]: prev[currentTeam.id] - 1
-    }));
+    if (settings.skipMode === 'limited_free') {
+      const remaining = passesLeft[currentTeam.id] ?? 0;
+      if (remaining <= 0) return;
+      pushSnapshot();
+      sound.playCardSwap();
+      setPassesLeft((prev) => ({
+        ...prev,
+        [currentTeam.id]: prev[currentTeam.id] - 1
+      }));
+    } else {
+      // Point penalty mode
+      pushSnapshot();
+      sound.playCardSwap();
+      const penalty = settings.skipPenaltyPoints ?? 2;
+      setScores((prev) => ({
+        ...prev,
+        [currentTeam.id]: (prev[currentTeam.id] || 0) - penalty
+      }));
+    }
 
     const nextCard = drawNextCard(currentCard.id);
     setCurrentCard(nextCard);
@@ -168,6 +295,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
   // Start 60s Timer!
   const handleBeginCountdown = () => {
     if (!currentCard) return;
+    pushSnapshot();
     onMarkCardPlayed(currentCard.id);
     sound.playRoundStart();
     if (sound.getSpeechEnabled()) {
@@ -178,7 +306,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
     setPhase('active');
   };
 
-  // Timer effect
+  // Timer effect -> goes to 'review' (Missed-by-Reader Check) when time runs out!
   useEffect(() => {
     if (phase !== 'active' || isPaused) {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -190,10 +318,9 @@ export const GameArena: React.FC<GameArenaProps> = ({
         if (prev <= 1) {
           clearInterval(timerRef.current!);
           sound.playBuzzer();
-          // Transition to steal or summary
           setPhase((currentPhase) => {
             if (currentPhase === 'active') {
-              return settings.stealEnabled ? 'steal' : 'summary';
+              return 'review';
             }
             return currentPhase;
           });
@@ -209,15 +336,14 @@ export const GameArena: React.FC<GameArenaProps> = ({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [phase, isPaused, settings.stealEnabled]);
+  }, [phase, isPaused]);
 
-  // Toggle a target during active round (or grace toggle during steal/summary)
+  // Toggle a target during active round, review phase, or summary
   const handleToggleTarget = (index: number) => {
     if (guessedIndices.includes(index)) {
       sound.playTargetUndo();
       setGuessedIndices((prev) => prev.filter((i) => i !== index));
     } else {
-      // Remove from stolen if it was marked stolen
       if (stolenIndices.includes(index)) {
         setStolenIndices((prev) => prev.filter((i) => i !== index));
       }
@@ -231,7 +357,6 @@ export const GameArena: React.FC<GameArenaProps> = ({
       const updated = [...guessedIndices, index];
       setGuessedIndices(updated);
 
-      // If all 10 targets are cleared during active phase!
       if (updated.length === 10 && phase === 'active') {
         if (timerRef.current) clearInterval(timerRef.current);
         sound.playOutburstSweep();
@@ -249,14 +374,14 @@ export const GameArena: React.FC<GameArenaProps> = ({
 
   // Toggle a stolen target during steal phase
   const handleToggleStealTarget = (index: number) => {
-    if (guessedIndices.includes(index)) return; // Already earned by active team
+    if (guessedIndices.includes(index)) return;
 
     if (stolenIndices.includes(index)) {
       sound.playTargetUndo();
       setStolenIndices((prev) => prev.filter((i) => i !== index));
     } else {
       if (stolenIndices.length >= settings.maxStealsPerCard) {
-        return; // Max steals reached
+        return;
       }
       sound.playTargetHit(8);
       setStolenIndices((prev) => [...prev, index]);
@@ -270,9 +395,91 @@ export const GameArena: React.FC<GameArenaProps> = ({
   const turnTotalForActiveTeam = basePoints + bonusPoints;
   const stealPoints = stolenIndices.length;
 
+  // Finish the entire game immediately ("End Game Early")
+  const handleEndGameEarly = (includeCurrentTurnPoints: boolean) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    pushSnapshot();
+
+    const finalScores = { ...scores };
+    const finalCleared = { ...cardsClearedCount };
+    const finalTurns = [...turnsLog];
+
+    if (includeCurrentTurnPoints && currentCard && currentTeam) {
+      finalScores[currentTeam.id] =
+        (finalScores[currentTeam.id] || 0) + turnTotalForActiveTeam;
+
+      if (stealPoints > 0 && stealingTeamId) {
+        finalScores[stealingTeamId] =
+          (finalScores[stealingTeamId] || 0) + stealPoints;
+      }
+
+      if (guessedIndices.length === 10) {
+        finalCleared[currentTeam.id] =
+          (finalCleared[currentTeam.id] || 0) + 1;
+      }
+
+      finalTurns.push({
+        roundNumber,
+        teamId: currentTeam.id,
+        cardId: currentCard.id,
+        cardTitle: currentCard.title,
+        guessedIndices,
+        bonusIndex,
+        bonusHit,
+        basePoints,
+        bonusPoints,
+        stolenByTeamId: stealPoints > 0 ? stealingTeamId : null,
+        stolenIndices,
+        stealPoints
+      });
+    }
+
+    setScores(finalScores);
+    setCardsClearedCount(finalCleared);
+    setTurnsLog(finalTurns);
+
+    const sortedTeams = [...activeTeams].sort(
+      (a, b) => (finalScores[b.id] || 0) - (finalScores[a.id] || 0)
+    );
+    const winner = sortedTeams[0] || activeTeams[0];
+
+    sound.playOutburstSweep();
+    confetti({
+      particleCount: 120,
+      spread: 85,
+      origin: { y: 0.5 }
+    });
+
+    const record: MatchRecord = {
+      id: `match-${Date.now()}`,
+      timestamp: Date.now(),
+      teams: activeTeams.map((t) => ({
+        id: t.id,
+        name: t.name,
+        colorHex: t.colorHex,
+        finalScore: finalScores[t.id] || 0
+      })),
+      winnerTeamId: winner.id,
+      roundsPlayed: roundNumber,
+      endCondition: settings.endCondition,
+      turns: finalTurns
+    };
+
+    const statsUpdate = activeTeams.map((t) => ({
+      teamId: t.id,
+      points: finalScores[t.id] || 0,
+      won: t.id === winner.id,
+      cardsCleared: finalCleared[t.id] || 0
+    }));
+
+    onCompleteMatch(record, statsUpdate);
+    setPhase('gameover');
+  };
+
   // Commit turn scores and move to next team or end match
   const handleCommitTurnAndAdvance = () => {
     if (!currentCard || !currentTeam) return;
+    pushSnapshot();
 
     const updatedScores = { ...scores };
     updatedScores[currentTeam.id] =
@@ -310,7 +517,6 @@ export const GameArena: React.FC<GameArenaProps> = ({
 
     const isLastTeamInRotation = currentTeamIdx === activeTeams.length - 1;
 
-    // Check if match ends! (Only check at the end of a full rotation so every team gets equal turns)
     if (isLastTeamInRotation) {
       const highestScore = Math.max(
         ...activeTeams.map((t) => updatedScores[t.id] || 0)
@@ -326,7 +532,6 @@ export const GameArena: React.FC<GameArenaProps> = ({
         settings.endCondition === 'fixed_rounds' &&
         roundNumber >= settings.totalRounds;
 
-      // End if target or rounds reached AND there isn't a tie (if tied, play sudden death overtime round!)
       if ((targetReached || roundsReached) && topTeams.length === 1) {
         const winner = topTeams[0];
         sound.playOutburstSweep();
@@ -363,14 +568,12 @@ export const GameArena: React.FC<GameArenaProps> = ({
         return;
       }
 
-      // Advance to next round rotation
       setRoundNumber((r) => r + 1);
       setCurrentTeamIdx(0);
     } else {
       setCurrentTeamIdx((idx) => idx + 1);
     }
 
-    // Draw card for next turn
     const nextCard = drawNextCard(currentCard.id);
     setCurrentCard(nextCard);
     setGuessedIndices([]);
@@ -393,202 +596,380 @@ export const GameArena: React.FC<GameArenaProps> = ({
   // RENDER PHASES
   // ============================================================================
 
-  // 1. LOBBY PHASE
+  // 1. SLEEK, COMPACT LOBBY PHASE (No scrolling required to hit Start!)
   if (phase === 'lobby') {
-    return (
-      <div className="arena-container animate-fadein">
-        {/* Hero Banner */}
-        <div className="hero-card glass-panel">
-          <div className="hero-badge">
-            <Zap size={15} /> RAPID-FIRE 10-TARGET PARTY GAME
-          </div>
-          <h1 className="hero-title">Ready to Outburst?</h1>
-          <p className="hero-subtitle">
-            One team shouts out answers while the reader taps off the 10 targets before the 60-second buzzer sounds!
-          </p>
+    const activePreset = META_CATEGORY_PRESETS.find(
+      (p) => p.id === settings.activeMetaPresetId
+    );
 
-          <div className="deck-status-pill">
-            <span>
-              <strong>{unplayedPool.length}</strong> fresh cards ready ({deckFilteredCards.length} total in selected decks)
-            </span>
+    return (
+      <div className="arena-container lobby-compact animate-fadein">
+        {/* Compact Hero Banner */}
+        <div className="hero-card-compact glass-panel">
+          <div className="flex-row-center">
+            <div>
+              <div className="hero-badge" style={{ marginBottom: 4 }}>
+                <Zap size={13} /> {unplayedPool.length} FRESH CARDS READY
+              </div>
+              <h1 style={{ fontSize: 22 }}>Ready to Outburst?</h1>
+            </div>
             {playedCardIds.length > 0 && (
               <button
                 className="btn-link-subtle"
                 onClick={onResetPlayedCards}
                 title="Mark all cards as unplayed"
               >
-                <RotateCcw size={13} /> Reset {playedCardIds.length} played
+                <RotateCcw size={13} /> Reset ({playedCardIds.length})
               </button>
             )}
           </div>
         </div>
 
-        {/* Active Matchup Teams */}
-        <div className="section-card glass-card">
-          <div className="flex-row-center" style={{ marginBottom: 12 }}>
-            <h3 className="section-label">
-              <Users size={16} /> Active Teams ({activeTeams.length})
-            </h3>
-            <button className="btn-chip" onClick={onOpenTeamSelect}>
-              Edit Teams
-            </button>
-          </div>
-
-          <div className="lobby-teams-grid">
-            {activeTeams.map((team, idx) => (
-              <div
-                key={team.id}
-                className="lobby-team-pill"
-                style={{
-                  borderColor: `${team.colorHex}66`,
-                  background: `linear-gradient(135deg, ${team.colorHex}22, transparent)`
-                }}
-              >
-                <div
-                  className="team-dot"
-                  style={{ backgroundColor: team.colorHex }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div className="team-pill-name">{team.name}</div>
-                  <div className="team-pill-meta">
-                    {team.gamesWon}W - {team.gamesPlayed - team.gamesWon}L • {team.totalPointsAllTime} pts
-                  </div>
-                </div>
-                <span className="turn-order-badge">#{idx + 1}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Quick Game Mode & Twists Configuration */}
-        <div className="section-card glass-card">
-          <h3 className="section-label" style={{ marginBottom: 14 }}>
-            <Sparkles size={16} /> Match Rules & Twists
-          </h3>
-
-          {/* End Condition Toggle */}
-          <div className="rule-row">
-            <div>
-              <div className="rule-title">Win Condition</div>
-              <div className="rule-desc">
-                {settings.endCondition === 'target_score'
-                  ? `First team to reach ${settings.targetScore} points (equal turns)`
-                  : `Highest score after ${settings.totalRounds} rounds per team`}
-              </div>
-            </div>
-            <div className="segmented-control">
-              <button
-                className={settings.endCondition === 'target_score' ? 'active' : ''}
-                onClick={() =>
-                  onUpdateSettings({ ...settings, endCondition: 'target_score' })
-                }
-              >
-                Target Score
-              </button>
-              <button
-                className={settings.endCondition === 'fixed_rounds' ? 'active' : ''}
-                onClick={() =>
-                  onUpdateSettings({ ...settings, endCondition: 'fixed_rounds' })
-                }
-              >
-                Fixed Rounds
-              </button>
-            </div>
-          </div>
-
-          {/* Target Score OR Fixed Rounds Options */}
-          {settings.endCondition === 'target_score' ? (
-            <div className="rule-options-bar">
-              {[30, 50, 60, 75].map((pts) => (
+        {/* 1. Expandable Game Mode & Generations Selector */}
+        <div className="collapsible-card glass-card">
+          <div className="meta-presets-compact-grid">
+            {META_CATEGORY_PRESETS.map((preset) => {
+              const isSelected = settings.activeMetaPresetId === preset.id;
+              return (
                 <button
-                  key={pts}
-                  className={`option-pill ${settings.targetScore === pts ? 'selected' : ''}`}
-                  onClick={() => onUpdateSettings({ ...settings, targetScore: pts })}
+                  key={preset.id}
+                  className={`meta-chip-btn ${isSelected ? 'selected' : ''}`}
+                  style={{
+                    borderColor: isSelected ? preset.badgeColor : undefined,
+                    background: isSelected ? `${preset.badgeColor}20` : undefined
+                  }}
+                  onClick={() => handleSelectMetaPreset(preset)}
                 >
-                  {pts} pts
+                  <span
+                    className="score-chip-dot"
+                    style={{ backgroundColor: preset.badgeColor }}
+                  />
+                  <span className="meta-chip-title">{preset.name}</span>
                 </button>
-              ))}
-            </div>
-          ) : (
-            <div className="rule-options-bar">
-              {[3, 5, 7, 10].map((rnds) => (
-                <button
-                  key={rnds}
-                  className={`option-pill ${settings.totalRounds === rnds ? 'selected' : ''}`}
-                  onClick={() => onUpdateSettings({ ...settings, totalRounds: rnds })}
-                >
-                  {rnds} Rounds
-                </button>
-              ))}
+              );
+            })}
+          </div>
+
+          <button
+            className="accordion-trigger-bar"
+            onClick={() => setDecksExpanded((v) => !v)}
+          >
+            <span>
+              <Layers size={14} />{' '}
+              {activePreset ? activePreset.name : 'Custom Deck Mix'} (
+              {settings.selectedDecks.length} decks • {deckFilteredCards.length}{' '}
+              cards)
+            </span>
+            {decksExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+          </button>
+
+          {decksExpanded && (
+            <div className="accordion-body">
+              <div className="deck-pills-wrap">
+                {DECK_CATEGORIES.map((deck) => {
+                  const count = availableCards.filter(
+                    (c) => c.deck === deck
+                  ).length;
+                  if (count === 0 && deck === 'Custom') return null;
+                  const isSelected = settings.selectedDecks.includes(deck);
+                  return (
+                    <button
+                      key={deck}
+                      className={`deck-filter-chip ${isSelected ? 'active' : ''}`}
+                      onClick={() => handleToggleSingleDeck(deck)}
+                    >
+                      <span>{deck}</span>
+                      <span className="deck-count-badge">{count}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
-
-          {/* Round Timer */}
-          <div className="rule-row" style={{ marginTop: 14 }}>
-            <div>
-              <div className="rule-title">Round Timer</div>
-              <div className="rule-desc">Seconds on the clock per card</div>
-            </div>
-            <div className="rule-options-inline">
-              {[45, 60, 75, 90].map((sec) => (
-                <button
-                  key={sec}
-                  className={`option-pill-sm ${settings.timerSeconds === sec ? 'selected' : ''}`}
-                  onClick={() => onUpdateSettings({ ...settings, timerSeconds: sec })}
-                >
-                  {sec}s
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Twists Toggles */}
-          <div className="twists-grid">
-            <button
-              className={`twist-toggle-card ${settings.bonusTargetEnabled ? 'enabled' : ''}`}
-              onClick={() =>
-                onUpdateSettings({
-                  ...settings,
-                  bonusTargetEnabled: !settings.bonusTargetEnabled
-                })
-              }
-            >
-              <div className="twist-header">
-                <Sparkles size={18} className="twist-icon-gold" />
-                <span className="twist-badge">
-                  {settings.bonusTargetEnabled ? 'ON (+2 PTS)' : 'OFF'}
-                </span>
-              </div>
-              <div className="twist-name">Secret Bonus Target</div>
-              <div className="twist-sub">
-                1 random item per card is worth 3 pts total!
-              </div>
-            </button>
-
-            <button
-              className={`twist-toggle-card ${settings.stealEnabled ? 'enabled' : ''}`}
-              onClick={() =>
-                onUpdateSettings({
-                  ...settings,
-                  stealEnabled: !settings.stealEnabled
-                })
-              }
-            >
-              <div className="twist-header">
-                <Flame size={18} className="twist-icon-cyan" />
-                <span className="twist-badge">
-                  {settings.stealEnabled ? 'ON (MAX 2)' : 'OFF'}
-                </span>
-              </div>
-              <div className="twist-name">Steal Opportunity</div>
-              <div className="twist-sub">
-                Opponents can snipe up to 2 missed items after the buzzer!
-              </div>
-            </button>
-          </div>
         </div>
 
-        {/* Start Match CTA */}
+        {/* 2. Expandable Active Teams Row */}
+        <div className="collapsible-card glass-card">
+          <div
+            className="accordion-header"
+            onClick={() => setTeamsExpanded((v) => !v)}
+          >
+            <div className="accordion-title-group">
+              <Users size={16} color="#06B6D4" />
+              <span className="accordion-title">Active Teams</span>
+              <div className="inline-team-badges">
+                {activeTeams.map((t) => (
+                  <span
+                    key={t.id}
+                    className="mini-team-pill"
+                    style={{
+                      borderColor: `${t.colorHex}88`,
+                      background: `${t.colorHex}18`
+                    }}
+                  >
+                    <span
+                      className="score-chip-dot"
+                      style={{ backgroundColor: t.colorHex }}
+                    />
+                    {t.name}
+                  </span>
+                ))}
+              </div>
+            </div>
+            {teamsExpanded ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+          </div>
+
+          {teamsExpanded && (
+            <div className="accordion-body">
+              <div className="lobby-teams-grid" style={{ marginBottom: 10 }}>
+                {activeTeams.map((team, idx) => (
+                  <div
+                    key={team.id}
+                    className="lobby-team-pill"
+                    style={{
+                      borderColor: `${team.colorHex}66`,
+                      background: `linear-gradient(135deg, ${team.colorHex}22, transparent)`
+                    }}
+                  >
+                    <div
+                      className="team-dot"
+                      style={{ backgroundColor: team.colorHex }}
+                    />
+                    <div style={{ flex: 1 }}>
+                      <div className="team-pill-name">{team.name}</div>
+                      <div className="team-pill-meta">
+                        {team.gamesWon}W - {team.gamesPlayed - team.gamesWon}L •{' '}
+                        {team.totalPointsAllTime} pts
+                      </div>
+                    </div>
+                    <span className="turn-order-badge">#{idx + 1}</span>
+                  </div>
+                ))}
+              </div>
+              <button
+                className="btn-chip"
+                style={{ width: '100%', justifyContent: 'center' }}
+                onClick={onOpenTeamSelect}
+              >
+                Manage Teams &amp; Generate Names
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 3. Expandable Match Rules & Twists Row (with 2 Presets + Custom Input!) */}
+        <div className="collapsible-card glass-card">
+          <div
+            className="accordion-header"
+            onClick={() => setRulesExpanded((v) => !v)}
+          >
+            <div className="accordion-title-group">
+              <Sparkles size={16} color="#F59E0B" />
+              <span className="accordion-title">Match Rules &amp; Twists</span>
+              <span className="rules-summary-pill">
+                {settings.endCondition === 'target_score'
+                  ? `${settings.targetScore} pts`
+                  : `${settings.totalRounds} rnds`}{' '}
+                • {settings.timerSeconds}s
+                {settings.bonusTargetEnabled ? ' • Bonus' : ''}
+                {settings.stealEnabled ? ' • Steal' : ''}
+              </span>
+            </div>
+            {rulesExpanded ? <ChevronUp size={17} /> : <ChevronDown size={17} />}
+          </div>
+
+          {rulesExpanded && (
+            <div className="accordion-body">
+              {/* Win Condition */}
+              <div className="rule-row" style={{ marginBottom: 10 }}>
+                <div className="rule-title">Win Mode</div>
+                <div className="segmented-control">
+                  <button
+                    className={
+                      settings.endCondition === 'target_score' ? 'active' : ''
+                    }
+                    onClick={() =>
+                      onUpdateSettings({
+                        ...settings,
+                        endCondition: 'target_score'
+                      })
+                    }
+                  >
+                    Target Score
+                  </button>
+                  <button
+                    className={
+                      settings.endCondition === 'fixed_rounds' ? 'active' : ''
+                    }
+                    onClick={() =>
+                      onUpdateSettings({
+                        ...settings,
+                        endCondition: 'fixed_rounds'
+                      })
+                    }
+                  >
+                    Fixed Rounds
+                  </button>
+                </div>
+              </div>
+
+              {/* 2 Default Options + Custom Number Box */}
+              {settings.endCondition === 'target_score' ? (
+                <div className="rule-row" style={{ marginBottom: 12 }}>
+                  <div className="rule-desc">Target Score (2 presets or custom)</div>
+                  <div className="preset-plus-custom">
+                    {[50, 60].map((pts) => (
+                      <button
+                        key={pts}
+                        className={`option-pill-sm ${
+                          settings.targetScore === pts ? 'selected' : ''
+                        }`}
+                        onClick={() =>
+                          onUpdateSettings({ ...settings, targetScore: pts })
+                        }
+                      >
+                        {pts} pts
+                      </button>
+                    ))}
+                    <input
+                      type="number"
+                      min={10}
+                      max={500}
+                      className="input-custom-num"
+                      value={settings.targetScore}
+                      onChange={(e) => {
+                        const val = Math.max(
+                          5,
+                          parseInt(e.target.value, 10) || 50
+                        );
+                        onUpdateSettings({ ...settings, targetScore: val });
+                      }}
+                      title="Custom target score"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="rule-row" style={{ marginBottom: 12 }}>
+                  <div className="rule-desc">Rounds Per Team (2 presets or custom)</div>
+                  <div className="preset-plus-custom">
+                    {[5, 10].map((rnds) => (
+                      <button
+                        key={rnds}
+                        className={`option-pill-sm ${
+                          settings.totalRounds === rnds ? 'selected' : ''
+                        }`}
+                        onClick={() =>
+                          onUpdateSettings({ ...settings, totalRounds: rnds })
+                        }
+                      >
+                        {rnds} Rnds
+                      </button>
+                    ))}
+                    <input
+                      type="number"
+                      min={1}
+                      max={50}
+                      className="input-custom-num"
+                      value={settings.totalRounds}
+                      onChange={(e) => {
+                        const val = Math.max(
+                          1,
+                          parseInt(e.target.value, 10) || 5
+                        );
+                        onUpdateSettings({ ...settings, totalRounds: val });
+                      }}
+                      title="Custom number of rounds"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Round Timer: 2 Default Options + Custom Box */}
+              <div className="rule-row" style={{ marginBottom: 12 }}>
+                <div className="rule-desc">Round Timer (seconds)</div>
+                <div className="preset-plus-custom">
+                  {[45, 60].map((sec) => (
+                    <button
+                      key={sec}
+                      className={`option-pill-sm ${
+                        settings.timerSeconds === sec ? 'selected' : ''
+                      }`}
+                      onClick={() =>
+                        onUpdateSettings({ ...settings, timerSeconds: sec })
+                      }
+                    >
+                      {sec}s
+                    </button>
+                  ))}
+                  <input
+                    type="number"
+                    min={10}
+                    max={300}
+                    className="input-custom-num"
+                    value={settings.timerSeconds}
+                    onChange={(e) => {
+                      const val = Math.max(
+                        5,
+                        parseInt(e.target.value, 10) || 60
+                      );
+                      onUpdateSettings({ ...settings, timerSeconds: val });
+                    }}
+                    title="Custom timer seconds"
+                  />
+                </div>
+              </div>
+
+              {/* Twists Toggles */}
+              <div className="twists-grid" style={{ marginTop: 8 }}>
+                <button
+                  className={`twist-toggle-card ${
+                    settings.bonusTargetEnabled ? 'enabled' : ''
+                  }`}
+                  onClick={() =>
+                    onUpdateSettings({
+                      ...settings,
+                      bonusTargetEnabled: !settings.bonusTargetEnabled
+                    })
+                  }
+                >
+                  <div className="twist-header">
+                    <Sparkles size={16} className="twist-icon-gold" />
+                    <span className="twist-badge">
+                      {settings.bonusTargetEnabled
+                        ? `ON (+${settings.bonusPointsValue})`
+                        : 'OFF'}
+                    </span>
+                  </div>
+                  <div className="twist-name">Bonus Target</div>
+                </button>
+
+                <button
+                  className={`twist-toggle-card ${
+                    settings.stealEnabled ? 'enabled' : ''
+                  }`}
+                  onClick={() =>
+                    onUpdateSettings({
+                      ...settings,
+                      stealEnabled: !settings.stealEnabled
+                    })
+                  }
+                >
+                  <div className="twist-header">
+                    <Flame size={16} className="twist-icon-cyan" />
+                    <span className="twist-badge">
+                      {settings.stealEnabled
+                        ? `ON (MAX ${settings.maxStealsPerCard})`
+                        : 'OFF'}
+                    </span>
+                  </div>
+                  <div className="twist-name">Steal Chance</div>
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Start Match CTA - Always immediately reachable */}
         <button
           className="btn-start-match"
           onClick={handleStartMatch}
@@ -601,20 +982,53 @@ export const GameArena: React.FC<GameArenaProps> = ({
     );
   }
 
-  // Live Scoreboard Header (Shown in Ready, Active, Steal, Summary)
-  const renderScoreboardStrip = () => (
+  // Persistent Top Bar for all in-game phases (Includes Back button + Round + End Game Early + Sound)
+  const renderScoreboardStrip = (includeCurrentInEarlyEnd: boolean) => (
     <div className="scoreboard-strip">
       <div className="scoreboard-meta">
-        <span className="round-pill">
-          ROUND {roundNumber}
-          {settings.endCondition === 'fixed_rounds' ? ` / ${settings.totalRounds}` : ''}
-        </span>
-        {settings.endCondition === 'target_score' && (
-          <span className="goal-pill">Goal: {settings.targetScore} pts</span>
-        )}
-        <button className="btn-icon-tiny" onClick={toggleSound} title="Toggle Sound">
-          {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            className="btn-step-back"
+            onClick={handleStepBack}
+            title="Step back and undo last action"
+          >
+            <ArrowLeft size={14} /> Back
+          </button>
+          <span className="round-pill">
+            RND {roundNumber}
+            {settings.endCondition === 'fixed_rounds'
+              ? `/${settings.totalRounds}`
+              : ''}
+          </span>
+          {settings.endCondition === 'target_score' && (
+            <span className="goal-pill">Goal: {settings.targetScore}</span>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <button
+            className="btn-end-game-early"
+            onClick={() => {
+              if (
+                window.confirm(
+                  'End the game now and crown the current leader as Champion?'
+                )
+              ) {
+                handleEndGameEarly(includeCurrentInEarlyEnd);
+              }
+            }}
+            title="Finish game now and crown current winner"
+          >
+            <Flag size={12} /> End Game
+          </button>
+          <button
+            className="btn-icon-tiny"
+            onClick={toggleSound}
+            title="Toggle Sound"
+          >
+            {soundOn ? <Volume2 size={15} /> : <VolumeX size={15} />}
+          </button>
+        </div>
       </div>
 
       <div className="scoreboard-teams">
@@ -642,13 +1056,15 @@ export const GameArena: React.FC<GameArenaProps> = ({
     </div>
   );
 
-  // 2. READY PHASE (Hand device to Reader, preview topic, optional Skip)
+  // 2. READY PHASE (Hand device to Reader, preview topic, Skip option)
   if (phase === 'ready' && currentCard && currentTeam) {
     const teamPasses = passesLeft[currentTeam.id] ?? 0;
+    const canSkip =
+      settings.skipMode === 'point_penalty' || teamPasses > 0;
 
     return (
       <div className="arena-container animate-fadein">
-        {renderScoreboardStrip()}
+        {renderScoreboardStrip(false)}
 
         <div
           className="ready-card glass-panel"
@@ -659,16 +1075,22 @@ export const GameArena: React.FC<GameArenaProps> = ({
         >
           <div
             className="turn-banner-pill"
-            style={{ backgroundColor: `${currentTeam.colorHex}33`, color: currentTeam.colorHex }}
+            style={{
+              backgroundColor: `${currentTeam.colorHex}33`,
+              color: currentTeam.colorHex
+            }}
           >
             UP NOW: {currentTeam.name.toUpperCase()}
           </div>
 
           <div className="reader-warning-box">
-            <ShieldAlert size={20} style={{ color: '#F59E0B', flexShrink: 0 }} />
+            <ShieldAlert
+              size={20}
+              style={{ color: '#F59E0B', flexShrink: 0 }}
+            />
             <span>
               <strong>READER / HOST EYES ONLY!</strong> Hand the device to{' '}
-              <strong>{nextTeam.name}</strong> (the opposing reader) so{' '}
+              <strong>{nextTeam.name}</strong> so{' '}
               <strong>{currentTeam.name}</strong> can&apos;t see the 10 targets!
             </span>
           </div>
@@ -676,11 +1098,15 @@ export const GameArena: React.FC<GameArenaProps> = ({
           <div className="topic-preview-box">
             <div className="topic-deck-tag">{currentCard.deck}</div>
             <div className="topic-announcement-label">YOUR CATEGORY IS:</div>
-            <h2 className="topic-preview-title">&ldquo;{currentCard.title}&rdquo;</h2>
+            <h2 className="topic-preview-title">
+              &ldquo;{currentCard.title}&rdquo;
+            </h2>
           </div>
 
           <p className="ready-instructions">
-            Read the category title aloud to <strong>{currentTeam.name}</strong>. When they are ready to shout answers, hit <strong>Start {settings.timerSeconds}s Timer</strong>!
+            Read the category title aloud to <strong>{currentTeam.name}</strong>.
+            When they are ready to shout answers, hit{' '}
+            <strong>Start {settings.timerSeconds}s Timer</strong>!
           </p>
 
           <div className="ready-actions">
@@ -689,25 +1115,16 @@ export const GameArena: React.FC<GameArenaProps> = ({
               START {settings.timerSeconds}s TIMER
             </button>
 
-            {teamPasses > 0 && (
+            {canSkip && (
               <button className="btn-skip-card" onClick={handleSkipCard}>
                 <SkipForward size={17} />
-                Pass &amp; Draw New Topic ({teamPasses} left)
+                {settings.skipMode === 'point_penalty'
+                  ? `Skip Topic (-${settings.skipPenaltyPoints} pts)`
+                  : `Pass & Draw New Topic (${teamPasses} left)`}
               </button>
             )}
           </div>
         </div>
-
-        <button
-          className="btn-abort-match"
-          onClick={() => {
-            if (window.confirm('Exit current match and return to lobby?')) {
-              setPhase('lobby');
-            }
-          }}
-        >
-          Cancel Match
-        </button>
       </div>
     );
   }
@@ -719,15 +1136,26 @@ export const GameArena: React.FC<GameArenaProps> = ({
 
     return (
       <div className="arena-container active-round-layout animate-fadein">
-        {/* Top Timer & Category Bar */}
         <div className={`live-hud ${isUrgent ? 'urgent-pulse' : ''}`}>
           <div className="hud-top-row">
-            <div className="hud-team-badge" style={{ color: currentTeam.colorHex }}>
-              <span
-                className="team-dot"
-                style={{ backgroundColor: currentTeam.colorHex }}
-              />
-              {currentTeam.name} Guessing
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                className="btn-step-back"
+                onClick={handleStepBack}
+                title="Go back to Ready screen"
+              >
+                <ArrowLeft size={13} /> Back
+              </button>
+              <div
+                className="hud-team-badge"
+                style={{ color: currentTeam.colorHex }}
+              >
+                <span
+                  className="team-dot"
+                  style={{ backgroundColor: currentTeam.colorHex }}
+                />
+                {currentTeam.name}
+              </div>
             </div>
 
             <div className="hud-timer-controls">
@@ -738,7 +1166,9 @@ export const GameArena: React.FC<GameArenaProps> = ({
                 {isPaused ? <Play size={14} /> : <Pause size={14} />}
                 {isPaused ? 'Resume' : 'Pause'}
               </button>
-              <div className={`digital-clock ${isUrgent ? 'clock-danger' : ''}`}>
+              <div
+                className={`digital-clock ${isUrgent ? 'clock-danger' : ''}`}
+              >
                 <Clock size={18} />
                 <span>{timeLeft}s</span>
               </div>
@@ -746,11 +1176,10 @@ export const GameArena: React.FC<GameArenaProps> = ({
 
             <div className="hud-score-pill">
               <span className="hud-hits">{guessedIndices.length}/10</span>
-              <span className="hud-pts">+{turnTotalForActiveTeam} pts</span>
+              <span className="hud-pts">+{turnTotalForActiveTeam}</span>
             </div>
           </div>
 
-          {/* Progress Bar */}
           <div className="timer-bar-track">
             <div
               className="timer-bar-fill"
@@ -764,7 +1193,6 @@ export const GameArena: React.FC<GameArenaProps> = ({
           <div className="hud-topic-title">{currentCard.title}</div>
         </div>
 
-        {/* 10 Targets Grid (Reader Taps as Guessed!) */}
         <div className="targets-grid">
           {currentCard.items.map((item, idx) => {
             const isGuessed = guessedIndices.includes(idx);
@@ -783,8 +1211,11 @@ export const GameArena: React.FC<GameArenaProps> = ({
                 </div>
                 <div className="target-text">{item}</div>
                 {isBonus && (
-                  <div className="bonus-star-pill" title="Bonus Target (+2 extra pts)">
-                    <Sparkles size={13} /> +3
+                  <div
+                    className="bonus-star-pill"
+                    title={`Bonus Target (+${settings.bonusPointsValue} extra pts)`}
+                  >
+                    <Sparkles size={13} /> +{settings.bonusPointsValue + 1}
                   </div>
                 )}
               </button>
@@ -792,26 +1223,134 @@ export const GameArena: React.FC<GameArenaProps> = ({
           })}
         </div>
 
-        {/* Early Finish / Time Up Control */}
         <div className="active-footer-bar">
-          <span className="footer-hint">
-            Tap targets as {currentTeam.name} shouts them!
-          </span>
+          <button
+            className="btn-end-game-early"
+            onClick={() => {
+              if (
+                window.confirm(
+                  'End the entire game now (including points earned so far this round) and crown the winner?'
+                )
+              ) {
+                handleEndGameEarly(true);
+              }
+            }}
+          >
+            <Flag size={13} /> End Game Early
+          </button>
+
           <button
             className="btn-end-timer-early"
             onClick={() => {
               if (timerRef.current) clearInterval(timerRef.current);
-              setPhase(settings.stealEnabled && guessedIndices.length < 10 ? 'steal' : 'summary');
+              pushSnapshot();
+              setPhase('review');
             }}
           >
-            End Timer Early <ArrowRight size={16} />
+            End Round Early <ArrowRight size={16} />
           </button>
         </div>
       </div>
     );
   }
 
-  // 4. STEAL PHASE (After Buzzer! Opposing team gets a chance to snipe up to 2 missed items, plus grace toggle for buzzer-beaters)
+  // 4. POST-BUZZER REVIEW PHASE (Check off any answers the original team shouted that the reader missed BEFORE Steal!)
+  if (phase === 'review' && currentCard && currentTeam) {
+    return (
+      <div className="arena-container active-round-layout animate-fadein">
+        <div className="review-banner glass-panel">
+          <div className="steal-header-row">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                className="btn-step-back"
+                onClick={handleStepBack}
+                title="Step back to timer"
+              >
+                <ArrowLeft size={13} /> Back
+              </button>
+              <div className="buzzer-pill">TIME&apos;S UP!</div>
+            </div>
+            <div
+              className="steal-team-label"
+              style={{ color: currentTeam.colorHex }}
+            >
+              <Headphones size={16} /> Check {currentTeam.name}&apos;s Answers
+            </div>
+          </div>
+
+          <h3 className="steal-topic-title">{currentCard.title}</h3>
+          <p className="steal-instructions">
+            <strong>Before any steal attempt:</strong> Tap any answers below
+            that <strong style={{ color: currentTeam.colorHex }}>{currentTeam.name}</strong>{' '}
+            shouted out during the round that the reader didn&apos;t hear or tap in time!
+          </p>
+        </div>
+
+        <div className="targets-grid">
+          {currentCard.items.map((item, idx) => {
+            const isGuessed = guessedIndices.includes(idx);
+            const isBonus = idx === bonusIndex;
+
+            return (
+              <button
+                key={idx}
+                className={`target-btn ${isGuessed ? 'target-checked' : ''} ${
+                  isBonus ? 'target-bonus' : ''
+                }`}
+                onClick={() => handleToggleTarget(idx)}
+              >
+                <div className="target-num">
+                  {isGuessed ? <Check size={18} strokeWidth={3} /> : idx + 1}
+                </div>
+                <div className="target-text">{item}</div>
+                {isBonus && (
+                  <div className="bonus-star-pill">
+                    <Sparkles size={13} /> +{settings.bonusPointsValue + 1}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="active-footer-bar">
+          <button
+            className="btn-end-game-early"
+            onClick={() => {
+              if (
+                window.confirm(
+                  'End the entire game now (including points earned this round) and crown the winner?'
+                )
+              ) {
+                handleEndGameEarly(true);
+              }
+            }}
+          >
+            <Flag size={13} /> End Game Early
+          </button>
+
+          <button
+            className="btn-primary-glow btn-finish-steal"
+            onClick={() => {
+              pushSnapshot();
+              if (settings.stealEnabled && guessedIndices.length < 10) {
+                setPhase('steal');
+              } else {
+                setPhase('summary');
+              }
+            }}
+          >
+            {settings.stealEnabled && guessedIndices.length < 10
+              ? `Next: ${nextTeam.name} Steal Chance`
+              : 'Complete & Score'}{' '}
+            <ArrowRight size={17} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 5. STEAL PHASE (Opposing team gets a chance to snipe missed items)
   if (phase === 'steal' && currentCard && currentTeam) {
     const opposingTeams = activeTeams.filter((t) => t.id !== currentTeam.id);
     const activeStealTeam =
@@ -821,7 +1360,16 @@ export const GameArena: React.FC<GameArenaProps> = ({
       <div className="arena-container active-round-layout animate-fadein">
         <div className="steal-banner glass-panel">
           <div className="steal-header-row">
-            <div className="buzzer-pill">TIME&apos;S UP!</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <button
+                className="btn-step-back"
+                onClick={handleStepBack}
+                title="Back to Answer Check"
+              >
+                <ArrowLeft size={13} /> Back
+              </button>
+              <div className="steal-badge-pill">STEAL ROUND</div>
+            </div>
             {opposingTeams.length > 1 ? (
               <div className="steal-team-selector">
                 <span>Stealing:</span>
@@ -853,11 +1401,13 @@ export const GameArena: React.FC<GameArenaProps> = ({
 
           <h3 className="steal-topic-title">{currentCard.title}</h3>
           <p className="steal-instructions">
-            <strong>Don&apos;t read the missed items yet!</strong> Give{' '}
+            Give{' '}
             <strong style={{ color: activeStealTeam?.colorHex }}>
               {activeStealTeam?.name}
             </strong>{' '}
-            one quick burst to guess up to <strong>{settings.maxStealsPerCard}</strong> missed answers (+1 pt each).
+            one quick burst to guess up to{' '}
+            <strong>{settings.maxStealsPerCard}</strong> missed answers (+1 pt
+            each).
           </p>
         </div>
 
@@ -896,27 +1446,11 @@ export const GameArena: React.FC<GameArenaProps> = ({
 
                 {isBonus && (
                   <span className="bonus-star-pill">
-                    <Sparkles size={12} /> +3
+                    <Sparkles size={12} /> +{settings.bonusPointsValue + 1}
                   </span>
                 )}
 
-                {/* Allow grace adjustment if active team shouted it right at the buzzer */}
-                {!isStolen && (
-                  <button
-                    className="btn-grace-toggle"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleToggleTarget(idx);
-                    }}
-                    title={
-                      isGuessed
-                        ? 'Undo credit for guessing team'
-                        : 'Credit buzzer-beater to guessing team'
-                    }
-                  >
-                    {isGuessed ? 'Guessed' : '+Grace'}
-                  </button>
-                )}
+                {isGuessed && <span className="guessed-tag">FOUND</span>}
                 {isStolen && <span className="stolen-tag">STOLEN +1</span>}
               </div>
             );
@@ -924,34 +1458,42 @@ export const GameArena: React.FC<GameArenaProps> = ({
         </div>
 
         <div className="active-footer-bar">
-          <div className="steal-summary-pills">
-            <span>
-              {currentTeam.name}: <strong>+{turnTotalForActiveTeam} pts</strong>
-            </span>
-            {stealPoints > 0 && (
-              <span style={{ color: activeStealTeam?.colorHex }}>
-                • {activeStealTeam?.name} Steal: <strong>+{stealPoints} pts</strong>
-              </span>
-            )}
-          </div>
+          <button
+            className="btn-end-game-early"
+            onClick={() => {
+              if (
+                window.confirm(
+                  'End the entire game now (including points earned this round) and crown the winner?'
+                )
+              ) {
+                handleEndGameEarly(true);
+              }
+            }}
+          >
+            <Flag size={13} /> End Game Early
+          </button>
+
           <button
             className="btn-primary-glow btn-finish-steal"
-            onClick={() => setPhase('summary')}
+            onClick={() => {
+              pushSnapshot();
+              setPhase('summary');
+            }}
           >
-            Reveal All &amp; Score <ArrowRight size={17} />
+            Complete &amp; Score <ArrowRight size={17} />
           </button>
         </div>
       </div>
     );
   }
 
-  // 5. TURN SUMMARY PHASE (Shows all 10 answers openly so everyone can see what they missed, plus live standings)
+  // 6. TURN SUMMARY PHASE
   if (phase === 'summary' && currentCard && currentTeam) {
     const stealTeamObj = activeTeams.find((t) => t.id === stealingTeamId);
 
     return (
       <div className="arena-container animate-fadein">
-        {renderScoreboardStrip()}
+        {renderScoreboardStrip(true)}
 
         <div className="summary-card glass-panel">
           <div className="summary-header">
@@ -976,10 +1518,10 @@ export const GameArena: React.FC<GameArenaProps> = ({
             </div>
           </div>
 
-          {/* Points Breakdown Pills */}
           <div className="points-breakdown-row">
             <span className="breakdown-pill">
-              <CheckCircle2 size={14} /> {basePoints} Targets Found (+{basePoints})
+              <CheckCircle2 size={14} /> {basePoints} Targets Found (+
+              {basePoints})
             </span>
             {bonusHit && (
               <span className="breakdown-pill bonus-pill">
@@ -991,12 +1533,12 @@ export const GameArena: React.FC<GameArenaProps> = ({
                 className="breakdown-pill steal-pill"
                 style={{ borderColor: stealTeamObj.colorHex }}
               >
-                <Flame size={14} /> {stealTeamObj.name} Stole {stealPoints} (+{stealPoints})
+                <Flame size={14} /> {stealTeamObj.name} Stole {stealPoints} (+
+                {stealPoints})
               </span>
             )}
           </div>
 
-          {/* All 10 Targets Revealed (tappable if host needs a last-second score correction) */}
           <div className="summary-targets-list">
             {currentCard.items.map((item, idx) => {
               const isGuessed = guessedIndices.includes(idx);
@@ -1014,7 +1556,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
                       : 'row-missed'
                   }`}
                   onClick={() => handleToggleTarget(idx)}
-                  title="Tap to toggle if a buzzer-beater needs adjustment"
+                  title="Tap to toggle if an answer needs adjustment"
                 >
                   <span className="row-index">{idx + 1}.</span>
                   <span className="row-text">{item}</span>
@@ -1033,18 +1575,36 @@ export const GameArena: React.FC<GameArenaProps> = ({
             })}
           </div>
 
-          <button
-            className="btn-start-match"
-            onClick={handleCommitTurnAndAdvance}
-          >
-            Save Points &amp; Next Team ({nextTeam.name}) <ArrowRight size={20} />
-          </button>
+          <div className="summary-actions-row">
+            <button
+              className="btn-start-match"
+              onClick={handleCommitTurnAndAdvance}
+            >
+              Save Points &amp; Next Team ({nextTeam.name}){' '}
+              <ArrowRight size={20} />
+            </button>
+
+            <button
+              className="btn-end-game-early-wide"
+              onClick={() => {
+                if (
+                  window.confirm(
+                    'Save this round and finish the match right now?'
+                  )
+                ) {
+                  handleEndGameEarly(true);
+                }
+              }}
+            >
+              <Flag size={15} /> Save Round &amp; End Game Now
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  // 6. GAME OVER PHASE (Winner Celebration & Match Breakdown)
+  // 7. GAME OVER PHASE
   if (phase === 'gameover') {
     const sortedTeams = [...activeTeams].sort(
       (a, b) => (scores[b.id] || 0) - (scores[a.id] || 0)
@@ -1054,6 +1614,12 @@ export const GameArena: React.FC<GameArenaProps> = ({
     return (
       <div className="arena-container animate-fadein">
         <div className="gameover-card glass-panel">
+          <div style={{ alignSelf: 'flex-start' }}>
+            <button className="btn-step-back" onClick={handleStepBack}>
+              <ArrowLeft size={14} /> Back to Match
+            </button>
+          </div>
+
           <div className="trophy-badge">
             <Trophy size={42} color="#F59E0B" />
           </div>
@@ -1065,7 +1631,8 @@ export const GameArena: React.FC<GameArenaProps> = ({
             {winner?.name} Wins!
           </h1>
           <p className="winner-sub">
-            Completed {roundNumber} rounds ({turnsLog.length} total cards played)
+            Completed {roundNumber} rounds ({turnsLog.length} total cards
+            played)
           </p>
 
           <div className="final-standings-list">
@@ -1078,7 +1645,11 @@ export const GameArena: React.FC<GameArenaProps> = ({
                 }}
               >
                 <div className="standing-rank">
-                  {idx === 0 ? <Award size={20} color="#F59E0B" /> : `#${idx + 1}`}
+                  {idx === 0 ? (
+                    <Award size={20} color="#F59E0B" />
+                  ) : (
+                    `#${idx + 1}`
+                  )}
                 </div>
                 <div
                   className="team-dot"

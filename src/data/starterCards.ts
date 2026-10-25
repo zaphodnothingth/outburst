@@ -1,14 +1,82 @@
-import { CategoryCard } from '../types/game';
+import { CategoryCard, DeckName, MetaCategoryPreset } from '../types/game';
+
+export const DECK_CATEGORIES: readonly DeckName[] = [
+  'Everyday',
+  'Food & Drink',
+  'Classic',
+  'Pop Culture',
+  'Geography & Nature',
+  'Kids Mode',
+  'Boomers (50s-70s)',
+  'Gen X (80s-90s)',
+  'Millennials (90s-00s)',
+  'Gen Z & Alpha',
+  'Sports & Games',
+  'Music & Hits',
+  'Custom'
+] as const;
+
+export const META_CATEGORY_PRESETS: MetaCategoryPreset[] = [
+  {
+    id: 'all-party',
+    name: 'All-Ages Party Mix',
+    tagline: 'Every deck enabled for a chaotic, multi-generational showdown',
+    badgeColor: '#F43F5E',
+    decks: [...DECK_CATEGORIES]
+  },
+  {
+    id: 'kids-junior',
+    name: 'Kids & Junior Mode',
+    tagline: 'Kid-friendly topics, school, animals, treats & cartoons',
+    badgeColor: '#10B981',
+    decks: ['Kids Mode', 'Food & Drink']
+  },
+  {
+    id: 'generations-clash',
+    name: 'Generations Clash',
+    tagline: 'Boomers vs. Gen X vs. Millennials vs. Gen Z cultural eras',
+    badgeColor: '#F59E0B',
+    decks: [
+      'Boomers (50s-70s)',
+      'Gen X (80s-90s)',
+      'Millennials (90s-00s)',
+      'Gen Z & Alpha'
+    ]
+  },
+  {
+    id: 'retro-throwback',
+    name: 'Retro Throwback (50s–90s)',
+    tagline: 'Boomers & Gen X classics, vinyl, arcades & golden-age TV',
+    badgeColor: '#8B5CF6',
+    decks: ['Boomers (50s-70s)', 'Gen X (80s-90s)', 'Classic']
+  },
+  {
+    id: 'modern-pop',
+    name: '2000s to Today',
+    tagline: 'Millennial nostalgia, Gen Z viral hits & modern pop culture',
+    badgeColor: '#06B6D4',
+    decks: ['Millennials (90s-00s)', 'Gen Z & Alpha', 'Pop Culture']
+  },
+  {
+    id: 'classic-board',
+    name: 'Classic Outburst',
+    tagline: 'Everyday life, food, geography & timeless board game topics',
+    badgeColor: '#EC4899',
+    decks: ['Everyday', 'Food & Drink', 'Classic', 'Geography & Nature']
+  }
+];
 
 export const STARTER_CARDS: CategoryCard[] = [
-  // Everyday
+  // ============================================================================
+  // EVERYDAY
+  // ============================================================================
   {
     id: 'everyday-01',
     title: 'Things Found in a Glove Compartment',
     deck: 'Everyday',
     difficulty: 'Easy',
     items: [
-      'Owner\'s Manual',
+      "Owner's Manual",
       'Vehicle Registration',
       'Insurance Card',
       'Napkins / Tissues',
@@ -27,13 +95,13 @@ export const STARTER_CARDS: CategoryCard[] = [
     difficulty: 'Easy',
     items: [
       'Traffic Jam',
-      'Alarm Didn\'t Go Off',
+      "Alarm Didn't Go Off",
       'Car Trouble / Flat Tire',
       'Overslept',
       'Bad Weather',
       'Train / Bus Delayed',
       'Sick Kid / Pet',
-      'Doctor\'s Appointment',
+      "Doctor's Appointment",
       'Lost Keys',
       'Spilled Coffee on Shirt'
     ]
@@ -129,7 +197,9 @@ export const STARTER_CARDS: CategoryCard[] = [
     ]
   },
 
-  // Food & Drink
+  // ============================================================================
+  // FOOD & DRINK
+  // ============================================================================
   {
     id: 'food-01',
     title: 'Standard Pizza Toppings',
@@ -239,7 +309,9 @@ export const STARTER_CARDS: CategoryCard[] = [
     ]
   },
 
-  // Classic Outburst Style
+  // ============================================================================
+  // CLASSIC
+  // ============================================================================
   {
     id: 'classic-01',
     title: 'Things Associated with Vampires',
@@ -349,7 +421,9 @@ export const STARTER_CARDS: CategoryCard[] = [
     ]
   },
 
-  // Pop Culture
+  // ============================================================================
+  // POP CULTURE
+  // ============================================================================
   {
     id: 'pop-01',
     title: 'Marvel Avengers Superheroes',
@@ -441,7 +515,9 @@ export const STARTER_CARDS: CategoryCard[] = [
     ]
   },
 
-  // Geography & Nature
+  // ============================================================================
+  // GEOGRAPHY & NATURE
+  // ============================================================================
   {
     id: 'geo-01',
     title: 'Animals That Hibernate or Den for Winter',
@@ -513,14 +589,411 @@ export const STARTER_CARDS: CategoryCard[] = [
       'Uranus',
       'Asteroid Belt / Pluto'
     ]
+  },
+
+  // ============================================================================
+  // KIDS MODE (Junior / Family Friendly)
+  // ============================================================================
+  {
+    id: 'kids-01',
+    title: 'Animals on Old MacDonald\'s Farm',
+    deck: 'Kids Mode',
+    difficulty: 'Easy',
+    items: [
+      'Cow (Moo)',
+      'Pig (Oink)',
+      'Duck (Quack)',
+      'Horse (Neigh)',
+      'Sheep (Baa)',
+      'Chicken / Hen (Cluck)',
+      'Rooster (Cock-a-doodle-doo)',
+      'Dog (Woof)',
+      'Cat (Meow)',
+      'Goat / Turkey'
+    ]
+  },
+  {
+    id: 'kids-02',
+    title: 'Things in a Kid\'s School Backpack',
+    deck: 'Kids Mode',
+    difficulty: 'Easy',
+    items: [
+      'Pencils',
+      'Crayons / Markers',
+      'Lunchbox',
+      'Water Bottle',
+      'Notebooks / Folders',
+      'Glue Stick',
+      'Eraser',
+      'Scissors',
+      'Ruler',
+      'Homework / Permission Slip'
+    ]
+  },
+  {
+    id: 'kids-03',
+    title: 'Playground Equipment at Recess',
+    deck: 'Kids Mode',
+    difficulty: 'Easy',
+    items: [
+      'Swings',
+      'Slide',
+      'Monkey Bars',
+      'Seesaw / Teeter-Totter',
+      'Merry-Go-Round',
+      'Sandbox',
+      'Tetherball',
+      'Jungle Gym / Climbing Wall',
+      'Hopscotch',
+      'Four Square Court'
+    ]
+  },
+  {
+    id: 'kids-04',
+    title: 'Things That Can Fly',
+    deck: 'Kids Mode',
+    difficulty: 'Easy',
+    items: [
+      'Birds',
+      'Airplane',
+      'Helicopter',
+      'Butterfly',
+      'Bumblebee',
+      'Bat',
+      'Dragonfly',
+      'Hot Air Balloon',
+      'Kite',
+      'Rocket Ship / Drone'
+    ]
+  },
+
+  // ============================================================================
+  // BOOMERS (50s-70s Nostalgia, Sports, Music & History)
+  // ============================================================================
+  {
+    id: 'boomer-01',
+    title: 'Classic 1950s & 60s TV Shows',
+    deck: 'Boomers (50s-70s)',
+    difficulty: 'Easy',
+    items: [
+      'I Love Lucy',
+      'The Andy Griffith Show',
+      'Leave It to Beaver',
+      'Bonanza',
+      'Gunsmoke',
+      'The Ed Sullivan Show',
+      'The Twilight Zone',
+      'Gilligan\'s Island',
+      'Bewitched',
+      'The Beverly Hillbillies'
+    ]
+  },
+  {
+    id: 'boomer-02',
+    title: 'Things at a 1950s Drive-In or Soda Fountain',
+    deck: 'Boomers (50s-70s)',
+    difficulty: 'Easy',
+    items: [
+      'Root Beer Float',
+      'Chocolate Malt / Milkshake',
+      'Jukebox',
+      'Carhop on Roller Skates',
+      'Window Speaker Box',
+      'Cheeseburger & Fries',
+      'Cherry Coke',
+      'Banana Split',
+      'Neon Sign',
+      'Convertible / Hot Rod'
+    ]
+  },
+  {
+    id: 'boomer-03',
+    title: 'Iconic 1960s & 70s Rock Bands & Artists',
+    deck: 'Boomers (50s-70s)',
+    difficulty: 'Easy',
+    items: [
+      'The Beatles',
+      'The Rolling Stones',
+      'Elvis Presley',
+      'Led Zeppelin',
+      'The Beach Boys',
+      'Pink Floyd',
+      'Jimi Hendrix',
+      'The Doors',
+      'Bob Dylan',
+      'Fleetwood Mac'
+    ]
+  },
+  {
+    id: 'boomer-04',
+    title: 'Sports Legends of the 1960s & 70s',
+    deck: 'Boomers (50s-70s)',
+    difficulty: 'Medium',
+    items: [
+      'Muhammad Ali',
+      'Mickey Mantle / Hank Aaron',
+      'Johnny Unitas / Joe Namath',
+      'Wilt Chamberlain / Bill Russell',
+      'Kareem Abdul-Jabbar',
+      'Jack Nicklaus / Arnold Palmer',
+      'Billie Jean King',
+      'Pelé',
+      'Vince Lombardi',
+      'Roberto Clemente'
+    ]
+  },
+
+  // ============================================================================
+  // GEN X (80s-90s Arcade, Mall Culture, MTV & Blockbuster)
+  // ============================================================================
+  {
+    id: 'genx-01',
+    title: '1980s Blockbuster Movies',
+    deck: 'Gen X (80s-90s)',
+    difficulty: 'Easy',
+    items: [
+      'Back to the Future',
+      'E.T. the Extra-Terrestrial',
+      'Ghostbusters',
+      'The Breakfast Club',
+      'Ferris Bueller\'s Day Off',
+      'Top Gun',
+      'Raiders of the Lost Ark',
+      'The Goonies',
+      'Die Hard',
+      'The Karate Kid'
+    ]
+  },
+  {
+    id: 'genx-02',
+    title: 'Classic 1980s Arcade Games',
+    deck: 'Gen X (80s-90s)',
+    difficulty: 'Easy',
+    items: [
+      'Pac-Man / Ms. Pac-Man',
+      'Donkey Kong',
+      'Space Invaders',
+      'Galaga',
+      'Frogger',
+      'Centipede',
+      'Asteroids',
+      'Q*bert',
+      'Dig Dug',
+      'Defender / Street Fighter'
+    ]
+  },
+  {
+    id: 'genx-03',
+    title: 'Things Associated with 1980s & 90s Mall Culture',
+    deck: 'Gen X (80s-90s)',
+    difficulty: 'Easy',
+    items: [
+      'Food Court (Orange Julius / Sbarro)',
+      'Arcade',
+      'Record Store (Sam Goody / Tower)',
+      'Spencer\'s Gifts',
+      'Claire\'s (Ear Piercing)',
+      'Photo Booth / Glamour Shots',
+      'Foot Locker',
+      'Fountain with Pennies',
+      'Escalators',
+      'Payphones'
+    ]
+  },
+
+  // ============================================================================
+  // MILLENNIALS (Late 90s-2000s Y2K, Early Internet & After-School TV)
+  // ============================================================================
+  {
+    id: 'millennial-01',
+    title: '90s & 2000s Kid / Teen Obsessions',
+    deck: 'Millennials (90s-00s)',
+    difficulty: 'Easy',
+    items: [
+      'Tamagotchi / Giga Pets',
+      'Beanie Babies',
+      'Pokémon Cards',
+      'Game Boy Color',
+      'Pogs / Slammers',
+      'Furby',
+      'walkman / CD Binder',
+      'Razor Scooter',
+      'Bop It / Skip-It',
+      'Gel Pens / Lisa Frank'
+    ]
+  },
+  {
+    id: 'millennial-02',
+    title: 'Early 2000s Internet & Tech Nostalgia',
+    deck: 'Millennials (90s-00s)',
+    difficulty: 'Easy',
+    items: [
+      'AIM (AOL Instant Messenger)',
+      'MySpace (Top 8)',
+      'LimeWire / Napster',
+      'Dial-Up Modem Sound',
+      'Motorola Razr Flip Phone',
+      'iPod Classic / Click Wheel',
+      'Burned Mix CDs',
+      'MapQuest Printed Directions',
+      'Netflix Red DVD Envelopes',
+      'Windows XP / Minesweeper'
+    ]
+  },
+  {
+    id: 'millennial-03',
+    title: '90s & 2000s Nickelodeon & Disney Shows',
+    deck: 'Millennials (90s-00s)',
+    difficulty: 'Easy',
+    items: [
+      'SpongeBob SquarePants',
+      'Rugrats',
+      'Hey Arnold!',
+      'That\'s So Raven',
+      'Lizzie McGuire',
+      'Hannah Montana',
+      'Kim Possible',
+      'Drake & Josh',
+      'All That / Kenan & Kel',
+      'Fairly OddParents'
+    ]
+  },
+
+  // ============================================================================
+  // GEN Z & ALPHA (Streaming, Viral Culture, Gaming & Modern Tech)
+  // ============================================================================
+  {
+    id: 'genz-01',
+    title: 'Gen Z & Alpha Slang Terms',
+    deck: 'Gen Z & Alpha',
+    difficulty: 'Easy',
+    items: [
+      'Rizz',
+      'No Cap / Cap',
+      'Bet',
+      'Slay',
+      'Sus',
+      'Bussin\'',
+      'GOAT',
+      'Ghosted',
+      'Mid',
+      'Main Character Energy / Sigma'
+    ]
+  },
+  {
+    id: 'genz-02',
+    title: 'Things in Minecraft or Fortnite',
+    deck: 'Gen Z & Alpha',
+    difficulty: 'Easy',
+    items: [
+      'Creeper',
+      'Diamond Pickaxe',
+      'Battle Bus',
+      'Chug Jug / Shield Potion',
+      'Ender Dragon',
+      'Victory Royale',
+      'Redstone',
+      'Loot Llama',
+      'Steve / Crafting Table',
+      'Tilted Towers / Emotes'
+    ]
+  },
+  {
+    id: 'genz-03',
+    title: 'Apps on a Gen Z Smartphone Home Screen',
+    deck: 'Gen Z & Alpha',
+    difficulty: 'Easy',
+    items: [
+      'TikTok',
+      'Snapchat',
+      'Instagram',
+      'YouTube',
+      'Spotify',
+      'Discord',
+      'FaceTime',
+      'BeReal / Pinterest',
+      'Roblox',
+      'Uber Eats / DoorDash'
+    ]
+  },
+
+  // ============================================================================
+  // SPORTS & GAMES
+  // ============================================================================
+  {
+    id: 'sports-01',
+    title: 'Positions on a Baseball Field',
+    deck: 'Sports & Games',
+    difficulty: 'Easy',
+    items: [
+      'Pitcher',
+      'Catcher',
+      'First Base',
+      'Second Base',
+      'Third Base',
+      'Shortstop',
+      'Left Field',
+      'Center Field',
+      'Right Field',
+      'Designated Hitter (DH)'
+    ]
+  },
+  {
+    id: 'sports-02',
+    title: 'Classic Family Board Games',
+    deck: 'Sports & Games',
+    difficulty: 'Easy',
+    items: [
+      'Monopoly',
+      'Scrabble',
+      'Clue',
+      'Risk',
+      'The Game of Life',
+      'Sorry!',
+      'Candy Land',
+      'Catan (Settlers of Catan)',
+      'Trivial Pursuit',
+      'Battleship / Connect Four'
+    ]
+  },
+
+  // ============================================================================
+  // MUSIC & HITS
+  // ============================================================================
+  {
+    id: 'music-01',
+    title: 'Instruments in a Rock or Pop Band',
+    deck: 'Music & Hits',
+    difficulty: 'Easy',
+    items: [
+      'Lead Guitar',
+      'Bass Guitar',
+      'Drum Kit',
+      'Lead Vocals / Microphone',
+      'Keyboard / Synthesizer',
+      'Acoustic Guitar',
+      'Tambourine',
+      'Saxophone',
+      'Cowbell',
+      'Backing Vocals'
+    ]
+  },
+  {
+    id: 'music-02',
+    title: 'Pop Divas & Superstars',
+    deck: 'Music & Hits',
+    difficulty: 'Easy',
+    items: [
+      'Taylor Swift',
+      'Beyoncé',
+      'Madonna',
+      'Whitney Houston',
+      'Lady Gaga',
+      'Rihanna',
+      'Mariah Carey',
+      'Ariana Grande',
+      'Britney Spears',
+      'Adele'
+    ]
   }
 ];
-
-export const DECK_CATEGORIES = [
-  'Everyday',
-  'Food & Drink',
-  'Classic',
-  'Pop Culture',
-  'Geography & Nature',
-  'Custom'
-] as const;

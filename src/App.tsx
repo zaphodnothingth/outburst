@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Zap, Layers, Users, Sun, Moon } from 'lucide-react';
+import { Zap, Layers, Users, Sun, Moon, Sliders } from 'lucide-react';
 import {
   CategoryCard,
   Team,
   GameSettings,
-  MatchRecord
+  MatchRecord,
+  GamePhase
 } from './types/game';
 import {
   loadInitialData,
@@ -21,13 +22,17 @@ import {
 import { GameArena } from './components/GameArena';
 import { DeckManager } from './components/DeckManager';
 import { TeamManager } from './components/TeamManager';
+import { SettingsPanel } from './components/SettingsPanel';
 
-type ActiveTab = 'play' | 'decks' | 'teams';
+type ActiveTab = 'play' | 'decks' | 'teams' | 'settings';
 
 export function App() {
   const initial = loadInitialData();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('play');
+  const [currentGamePhase, setCurrentGamePhase] = useState<GamePhase>('lobby');
+  const [quitSignal, setQuitSignal] = useState<number>(0);
+
   const [teams, setTeams] = useState<Team[]>(initial.teams);
   const [activeTeamIds, setActiveTeamIds] = useState<string[]>(
     initial.activeTeamIds
@@ -66,8 +71,25 @@ export function App() {
 
   const activeTeams = teams.filter((t) => activeTeamIds.includes(t.id));
   const allAvailableCards = getAllAvailableCards(customCards);
+  const isGameInProgress =
+    currentGamePhase !== 'lobby' && currentGamePhase !== 'gameover';
 
-  // Handlers
+  // Handle clicking top-left "OUTBURST!" brand logo or bottom-left "Play Game" tab
+  const handlePlayOrHomeClick = () => {
+    if (activeTab !== 'play') {
+      // Coming back from Decks, Teams, or Settings -> resume game in progress without losing it!
+      setActiveTab('play');
+      return;
+    }
+
+    // Already on Play tab: if a match is in progress, ask to confirm quitting
+    if (isGameInProgress) {
+      if (window.confirm('Are you sure you want to quit the game?')) {
+        setQuitSignal((s) => s + 1);
+      }
+    }
+  };
+
   const handleUpdateSettings = (next: GameSettings) => {
     setSettings(next);
     saveSettings(next);
@@ -137,14 +159,22 @@ export function App() {
     }
   };
 
+  const handleRenameTeam = (teamId: string, newName: string) => {
+    const nextTeams = teams.map((t) =>
+      t.id === teamId ? { ...t, name: newName } : t
+    );
+    setTeams(nextTeams);
+    saveTeams(nextTeams);
+  };
+
   const handleToggleActiveTeam = (teamId: string) => {
     if (activeTeamIds.includes(teamId)) {
-      if (activeTeamIds.length <= 2) return; // Keep at least 2 active teams
+      if (activeTeamIds.length <= 2) return;
       const next = activeTeamIds.filter((id) => id !== teamId);
       setActiveTeamIds(next);
       saveActiveTeamIds(next);
     } else {
-      if (activeTeamIds.length >= 4) return; // Max 4 teams in a game
+      if (activeTeamIds.length >= 4) return;
       const next = [...activeTeamIds, teamId];
       setActiveTeamIds(next);
       saveActiveTeamIds(next);
@@ -160,9 +190,7 @@ export function App() {
     if (activeTeamIds.includes(teamId)) {
       const nextActive = activeTeamIds.filter((id) => id !== teamId);
       if (nextActive.length < 2 && nextTeams.length >= 2) {
-        const fallback = nextTeams
-          .slice(0, 2)
-          .map((t) => t.id);
+        const fallback = nextTeams.slice(0, 2).map((t) => t.id);
         setActiveTeamIds(fallback);
         saveActiveTeamIds(fallback);
       } else {
@@ -189,12 +217,13 @@ export function App() {
 
   const handleToggleDeck = (deck: string) => {
     const exists = settings.selectedDecks.includes(deck);
-    if (exists && settings.selectedDecks.length <= 1) return; // Keep at least 1 deck active
+    if (exists && settings.selectedDecks.length <= 1) return;
     const nextDecks = exists
       ? settings.selectedDecks.filter((d) => d !== deck)
       : [...settings.selectedDecks, deck];
     handleUpdateSettings({
       ...settings,
+      activeMetaPresetId: undefined,
       selectedDecks: nextDecks
     });
   };
@@ -212,30 +241,58 @@ export function App() {
     <div className="app-container">
       {/* Top App Header */}
       <header className="app-header">
-        <div className="brand-logo" onClick={() => setActiveTab('play')}>
+        <div
+          className="brand-logo"
+          onClick={handlePlayOrHomeClick}
+          title={
+            isGameInProgress
+              ? 'Click to quit or return to game'
+              : 'Outburst Home'
+          }
+        >
           <div className="brand-icon">
             <Zap size={20} fill="currentColor" />
           </div>
           <div>
             <span className="brand-title">OUTBURST!</span>
-            <span className="brand-tag">PARTY EDITION</span>
+            <span className="brand-tag">
+              {isGameInProgress ? '● MATCH LIVE' : 'PARTY EDITION'}
+            </span>
           </div>
         </div>
 
-        <button
-          className="btn-icon-tiny"
-          onClick={() => setLightTheme((v) => !v)}
-          title="Toggle Theme"
-        >
-          {lightTheme ? <Moon size={18} /> : <Sun size={18} />}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {isGameInProgress && activeTab !== 'play' && (
+            <button
+              className="btn-resume-pill"
+              onClick={() => setActiveTab('play')}
+            >
+              Resume Game
+            </button>
+          )}
+          <button
+            className="btn-icon-tiny"
+            onClick={() => setLightTheme((v) => !v)}
+            title="Toggle Theme"
+          >
+            {lightTheme ? <Moon size={18} /> : <Sun size={18} />}
+          </button>
+        </div>
       </header>
 
-      {/* Main Content Area */}
+      {/* Main Content Area — GameArena stays mounted so switching to Decks/Teams/Settings never loses a game in progress! */}
       <main className="app-content">
-        {activeTab === 'play' && (
+        <div
+          style={{
+            display: activeTab === 'play' ? 'flex' : 'none',
+            flexDirection: 'column',
+            flex: 1
+          }}
+        >
           <GameArena
-            activeTeams={activeTeams.length >= 2 ? activeTeams : teams.slice(0, 2)}
+            activeTeams={
+              activeTeams.length >= 2 ? activeTeams : teams.slice(0, 2)
+            }
             settings={settings}
             availableCards={allAvailableCards}
             playedCardIds={playedCardIds}
@@ -244,8 +301,10 @@ export function App() {
             onCompleteMatch={handleCompleteMatch}
             onUpdateSettings={handleUpdateSettings}
             onOpenTeamSelect={() => setActiveTab('teams')}
+            onPhaseChange={setCurrentGamePhase}
+            quitSignal={quitSignal}
           />
-        )}
+        </div>
 
         {activeTab === 'decks' && (
           <DeckManager
@@ -266,6 +325,7 @@ export function App() {
             activeTeamIds={activeTeamIds}
             matchHistory={matchHistory}
             onAddTeam={handleAddTeam}
+            onRenameTeam={handleRenameTeam}
             onToggleActiveTeam={handleToggleActiveTeam}
             onDeleteTeam={handleDeleteTeam}
             onClearHistory={() => {
@@ -275,30 +335,44 @@ export function App() {
             onRestoreBackup={handleRestoreBackup}
           />
         )}
+
+        {activeTab === 'settings' && (
+          <SettingsPanel
+            settings={settings}
+            onUpdateSettings={handleUpdateSettings}
+          />
+        )}
       </main>
 
       {/* Bottom Navigation Bar */}
-      <nav className="bottom-nav">
+      <nav className="bottom-nav nav-4-cols">
         <button
           className={`nav-tab ${activeTab === 'play' ? 'active' : ''}`}
-          onClick={() => setActiveTab('play')}
+          onClick={handlePlayOrHomeClick}
         >
-          <Zap size={20} />
-          <span>Play Game</span>
+          <Zap size={19} />
+          <span>{isGameInProgress ? 'Play (Live)' : 'Play Game'}</span>
         </button>
         <button
           className={`nav-tab ${activeTab === 'decks' ? 'active' : ''}`}
           onClick={() => setActiveTab('decks')}
         >
-          <Layers size={20} />
+          <Layers size={19} />
           <span>Decks ({allAvailableCards.length})</span>
         </button>
         <button
           className={`nav-tab ${activeTab === 'teams' ? 'active' : ''}`}
           onClick={() => setActiveTab('teams')}
         >
-          <Users size={20} />
+          <Users size={19} />
           <span>Teams &amp; History</span>
+        </button>
+        <button
+          className={`nav-tab ${activeTab === 'settings' ? 'active' : ''}`}
+          onClick={() => setActiveTab('settings')}
+        >
+          <Sliders size={19} />
+          <span>Settings</span>
         </button>
       </nav>
     </div>

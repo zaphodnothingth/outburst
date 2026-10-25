@@ -3,6 +3,7 @@
 
 import { CategoryCard, Team, MatchRecord, GameSettings } from '../types/game';
 import { STARTER_CARDS, DECK_CATEGORIES } from '../data/starterCards';
+import { EXPANSION_CARDS } from '../data/expansionCards';
 
 const DB_NAME = 'OutburstGameDB';
 const DB_VERSION = 1;
@@ -19,9 +20,9 @@ export interface PersistedData {
 export const DEFAULT_TEAMS: Team[] = [
   {
     id: 'team-1',
-    name: 'Team Bolt',
+    name: 'Guys',
     colorVar: '--team-1',
-    colorHex: '#F43F5E',
+    colorHex: '#06B6D4',
     gamesPlayed: 0,
     gamesWon: 0,
     totalPointsAllTime: 0,
@@ -29,9 +30,9 @@ export const DEFAULT_TEAMS: Team[] = [
   },
   {
     id: 'team-2',
-    name: 'Team Surge',
+    name: 'Girls',
     colorVar: '--team-2',
-    colorHex: '#06B6D4',
+    colorHex: '#F43F5E',
     gamesPlayed: 0,
     gamesWon: 0,
     totalPointsAllTime: 0,
@@ -48,8 +49,11 @@ export const DEFAULT_SETTINGS: GameSettings = {
   bonusPointsValue: 2, // +2 bonus on top of 1 base pt = 3 pts total
   stealEnabled: true,
   maxStealsPerCard: 2,
+  skipMode: 'point_penalty',
   passesPerTeam: 1,
-  selectedDecks: [...DECK_CATEGORIES]
+  skipPenaltyPoints: 2,
+  selectedDecks: [...DECK_CATEGORIES],
+  activeMetaPresetId: 'all-party'
 };
 
 const LS_KEYS = {
@@ -70,7 +74,6 @@ function safeParse<T>(json: string | null, fallback: T): T {
   }
 }
 
-// IndexedDB mirror helper so large card decks (thousands of cards) or iOS storage pressure never lose data
 function openIDB(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === 'undefined') return Promise.resolve(null);
   return new Promise((resolve) => {
@@ -124,7 +127,6 @@ export async function syncFromIDBIfNeeded(): Promise<Partial<PersistedData>> {
         const getReq = store.get(lsKey);
         getReq.onsuccess = () => {
           if (getReq.result !== undefined && !localStorage.getItem(lsKey)) {
-            // Restore to localStorage if localStorage was cleared
             localStorage.setItem(lsKey, JSON.stringify(getReq.result));
             (result as Record<string, unknown>)[prop] = getReq.result;
           }
@@ -143,15 +145,46 @@ export async function syncFromIDBIfNeeded(): Promise<Partial<PersistedData>> {
 }
 
 export function loadInitialData(): PersistedData {
+  // Migrate untouched default teams ("Team Bolt" / "Team Surge") to "Guys" & "Girls"
+  let loadedTeams = safeParse<Team[]>(
+    localStorage.getItem(LS_KEYS.TEAMS),
+    DEFAULT_TEAMS
+  );
+  if (
+    loadedTeams.length === 2 &&
+    loadedTeams[0].name === 'Team Bolt' &&
+    loadedTeams[1].name === 'Team Surge' &&
+    loadedTeams[0].gamesPlayed === 0 &&
+    loadedTeams[1].gamesPlayed === 0
+  ) {
+    loadedTeams = DEFAULT_TEAMS;
+    localStorage.setItem(LS_KEYS.TEAMS, JSON.stringify(DEFAULT_TEAMS));
+  }
+
   return {
-    teams: safeParse<Team[]>(localStorage.getItem(LS_KEYS.TEAMS), DEFAULT_TEAMS),
-    activeTeamIds: safeParse<string[]>(localStorage.getItem(LS_KEYS.ACTIVE_TEAMS), ['team-1', 'team-2']),
-    customCards: safeParse<CategoryCard[]>(localStorage.getItem(LS_KEYS.CUSTOM_CARDS), []),
-    playedCardIds: safeParse<string[]>(localStorage.getItem(LS_KEYS.PLAYED_CARDS), []),
-    matchHistory: safeParse<MatchRecord[]>(localStorage.getItem(LS_KEYS.MATCH_HISTORY), []),
+    teams: loadedTeams,
+    activeTeamIds: safeParse<string[]>(
+      localStorage.getItem(LS_KEYS.ACTIVE_TEAMS),
+      ['team-1', 'team-2']
+    ),
+    customCards: safeParse<CategoryCard[]>(
+      localStorage.getItem(LS_KEYS.CUSTOM_CARDS),
+      []
+    ),
+    playedCardIds: safeParse<string[]>(
+      localStorage.getItem(LS_KEYS.PLAYED_CARDS),
+      []
+    ),
+    matchHistory: safeParse<MatchRecord[]>(
+      localStorage.getItem(LS_KEYS.MATCH_HISTORY),
+      []
+    ),
     settings: {
       ...DEFAULT_SETTINGS,
-      ...safeParse<Partial<GameSettings>>(localStorage.getItem(LS_KEYS.SETTINGS), {})
+      ...safeParse<Partial<GameSettings>>(
+        localStorage.getItem(LS_KEYS.SETTINGS),
+        {}
+      )
     }
   };
 }
@@ -186,8 +219,10 @@ export function saveSettings(settings: GameSettings) {
   saveToIDB(LS_KEYS.SETTINGS, settings);
 }
 
-export function getAllAvailableCards(customCards: CategoryCard[]): CategoryCard[] {
-  return [...customCards, ...STARTER_CARDS];
+export function getAllAvailableCards(
+  customCards: CategoryCard[]
+): CategoryCard[] {
+  return [...customCards, ...STARTER_CARDS, ...EXPANSION_CARDS];
 }
 
 export function exportFullBackup(): string {

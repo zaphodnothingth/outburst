@@ -9,7 +9,9 @@ import {
   Upload,
   History,
   Award,
-  Flame
+  Flame,
+  Dices,
+  Edit3
 } from 'lucide-react';
 import { Team, MatchRecord } from '../types/game';
 import { exportFullBackup, importFullBackup, PersistedData } from '../utils/storage';
@@ -19,6 +21,7 @@ interface TeamManagerProps {
   activeTeamIds: string[];
   matchHistory: MatchRecord[];
   onAddTeam: (name: string, colorHex: string) => void;
+  onRenameTeam: (teamId: string, newName: string) => void;
   onToggleActiveTeam: (teamId: string) => void;
   onDeleteTeam: (teamId: string) => void;
   onClearHistory: () => void;
@@ -26,8 +29,8 @@ interface TeamManagerProps {
 }
 
 const TEAM_COLORS = [
-  '#F43F5E', // Rose
   '#06B6D4', // Cyan
+  '#F43F5E', // Rose
   '#10B981', // Emerald
   '#F59E0B', // Amber
   '#8B5CF6', // Violet
@@ -36,11 +39,39 @@ const TEAM_COLORS = [
   '#F97316'  // Orange
 ];
 
+const FUN_TEAM_NAMES = [
+  'Guys',
+  'Girls',
+  'Loudmouths',
+  'Brain Freeze',
+  'Buzzer Beaters',
+  'Mind Readers',
+  'Overthinkers',
+  'Chaos Crew',
+  'Rapid Fire',
+  'Screaming Eagles',
+  'Couch Potatoes',
+  'Quizards of Oz',
+  'Smarty Pints',
+  'Wait What?!',
+  'Wild Guesses',
+  'Full Throttle',
+  'No Cap Clan',
+  'Old School Legends',
+  'Snack Attack',
+  'Hot Mic',
+  'Plot Twist',
+  'Panic Button',
+  'High Voltage',
+  'Victory Lap'
+];
+
 export const TeamManager: React.FC<TeamManagerProps> = ({
   teams,
   activeTeamIds,
   matchHistory,
   onAddTeam,
+  onRenameTeam,
   onToggleActiveTeam,
   onDeleteTeam,
   onClearHistory,
@@ -48,14 +79,28 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
 }) => {
   const [newTeamName, setNewTeamName] = useState('');
   const [selectedColor, setSelectedColor] = useState(TEAM_COLORS[2]);
+  const [editingTeamId, setEditingTeamId] = useState<string | null>(null);
+  const [editNameVal, setEditNameVal] = useState('');
   const [importStatus, setImportStatus] = useState<string>('');
+
+  const pickRandomTeamName = (): string => {
+    const existingNames = new Set(teams.map((t) => t.name.toLowerCase()));
+    const available = FUN_TEAM_NAMES.filter(
+      (n) => !existingNames.has(n.toLowerCase()) && n !== newTeamName
+    );
+    const pool = available.length > 0 ? available : FUN_TEAM_NAMES;
+    return pool[Math.floor(Math.random() * pool.length)];
+  };
+
+  const handleGenerateTeamName = () => {
+    setNewTeamName(pickRandomTeamName());
+  };
 
   const handleCreateTeam = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTeamName.trim()) return;
-    onAddTeam(newTeamName.trim(), selectedColor);
+    const finalName = newTeamName.trim() || pickRandomTeamName();
+    onAddTeam(finalName, selectedColor);
     setNewTeamName('');
-    // Pick next color
     const nextColor =
       TEAM_COLORS[(TEAM_COLORS.indexOf(selectedColor) + 1) % TEAM_COLORS.length];
     setSelectedColor(nextColor);
@@ -106,10 +151,18 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
             <input
               type="text"
               className="input-premium"
-              placeholder="New Team Name (e.g. Brainstormers)"
+              placeholder="Team Name (or click Generate)"
               value={newTeamName}
               onChange={(e) => setNewTeamName(e.target.value)}
             />
+            <button
+              type="button"
+              className="btn-chip"
+              onClick={handleGenerateTeamName}
+              title="Generate a random fun team name"
+            >
+              <Dices size={16} color="#F59E0B" /> Generate Name
+            </button>
             <button type="submit" className="btn-primary-glow btn-chip-primary">
               <Plus size={18} /> Add
             </button>
@@ -134,6 +187,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
               team.gamesPlayed > 0
                 ? Math.round((team.gamesWon / team.gamesPlayed) * 100)
                 : 0;
+            const isEditing = editingTeamId === team.id;
 
             return (
               <div
@@ -142,7 +196,9 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                 style={{
                   borderColor: isActive ? team.colorHex : undefined
                 }}
-                onClick={() => onToggleActiveTeam(team.id)}
+                onClick={() => {
+                  if (!isEditing) onToggleActiveTeam(team.id);
+                }}
               >
                 <div
                   className="roster-check"
@@ -155,10 +211,47 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <div className="roster-team-name">{team.name}</div>
+                  {isEditing ? (
+                    <div
+                      style={{ display: 'flex', gap: 6, alignItems: 'center' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="text"
+                        className="input-premium"
+                        style={{ padding: '5px 10px', fontSize: 14 }}
+                        value={editNameVal}
+                        onChange={(e) => setEditNameVal(e.target.value)}
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        className="btn-chip"
+                        onClick={() => setEditNameVal(pickRandomTeamName())}
+                        title="Randomize Name"
+                      >
+                        <Dices size={14} color="#F59E0B" />
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-chip-primary"
+                        onClick={() => {
+                          if (editNameVal.trim()) {
+                            onRenameTeam(team.id, editNameVal.trim());
+                          }
+                          setEditingTeamId(null);
+                        }}
+                      >
+                        Save
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="roster-team-name">{team.name}</div>
+                  )}
                   <div className="roster-team-stats">
                     <span>
-                      <Trophy size={12} /> {team.gamesWon}W / {team.gamesPlayed}G ({winRate}%)
+                      <Trophy size={12} /> {team.gamesWon}W / {team.gamesPlayed}G (
+                      {winRate}%)
                     </span>
                     <span>• {team.totalPointsAllTime} Lifetime Pts</span>
                     {team.totalCardsCleared > 0 && (
@@ -169,18 +262,30 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                   </div>
                 </div>
 
-                {teams.length > 2 && (
+                <div
+                  style={{ display: 'flex', gap: 6 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
-                    className="btn-icon-tiny danger"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDeleteTeam(team.id);
+                    className="btn-icon-tiny"
+                    onClick={() => {
+                      setEditingTeamId(team.id);
+                      setEditNameVal(team.name);
                     }}
-                    title="Delete Team"
+                    title="Rename Team"
                   >
-                    <Trash2 size={16} />
+                    <Edit3 size={15} />
                   </button>
-                )}
+                  {teams.length > 2 && (
+                    <button
+                      className="btn-icon-tiny danger"
+                      onClick={() => onDeleteTeam(team.id)}
+                      title="Delete Team"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
@@ -226,7 +331,8 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
                 <div key={match.id} className="history-item">
                   <div className="history-item-top">
                     <span className="history-winner">
-                      <Award size={15} color="#F59E0B" /> {winner?.name || 'Winner'} Won!
+                      <Award size={15} color="#F59E0B" />{' '}
+                      {winner?.name || 'Winner'} Won!
                     </span>
                     <span className="history-date">
                       {dateStr} • {match.roundsPlayed} Rnds
@@ -254,7 +360,7 @@ export const TeamManager: React.FC<TeamManagerProps> = ({
         )}
       </div>
 
-      {/* Long-Term Backup & Restore (Guarantees multi-year persistence & device transfer) */}
+      {/* Long-Term Backup & Restore */}
       <div className="section-card glass-card">
         <h3 className="section-label" style={{ marginBottom: 8 }}>
           <Users size={16} /> Offline Persistence &amp; Device Backup
