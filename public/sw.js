@@ -1,4 +1,4 @@
-const CACHE_NAME = 'outburst-cache-v1';
+const CACHE_NAME = 'outburst-cache-v2';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -33,6 +33,25 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Network-first for HTML navigation so reopening the installed app always grabs the latest version immediately when online!
+  if (event.request.mode === 'navigate' || event.request.destination === 'document') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const copy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((res) => res || caches.match('./index.html'));
+        })
+    );
+    return;
+  }
+
+  // Stale-while-revalidate for hashed JS/CSS/icons
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
@@ -57,11 +76,7 @@ self.addEventListener('fetch', (event) => {
           });
           return networkResponse;
         })
-        .catch(() => {
-          if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-        });
+        .catch(() => {});
     })
   );
 });
