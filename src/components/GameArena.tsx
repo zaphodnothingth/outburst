@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Play,
   SkipForward,
-  CheckCircle2,
   Sparkles,
   Flame,
   ShieldAlert,
@@ -21,8 +20,7 @@ import {
   Flag,
   Layers,
   ChevronDown,
-  ChevronUp,
-  Headphones
+  ChevronUp
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import {
@@ -342,7 +340,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
     setPhase('active');
   };
 
-  // Timer effect -> goes to 'review' (Missed-by-Reader Check) when time runs out!
+  // Timer effect -> goes directly to 'steal' (Unified Post-Buzzer Wrap-Up: Grace + Steal + Score) when time runs out!
   useEffect(() => {
     if (phase !== 'active' || isPaused) {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -356,7 +354,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
           sound.playBuzzer();
           setPhase((currentPhase) => {
             if (currentPhase === 'active') {
-              return 'review';
+              return 'steal';
             }
             return currentPhase;
           });
@@ -374,7 +372,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
     };
   }, [phase, isPaused]);
 
-  // Toggle a target during active round, review phase, or summary
+  // Toggle a target during active round or post-buzzer wrap-up (+Grace)
   const handleToggleTarget = (index: number) => {
     if (guessedIndices.includes(index)) {
       sound.playTargetUndo();
@@ -402,7 +400,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
           origin: { y: 0.6 }
         });
         setTimeout(() => {
-          setPhase('summary');
+          setPhase('steal');
         }, 650);
       }
     }
@@ -1280,7 +1278,7 @@ export const GameArena: React.FC<GameArenaProps> = ({
             onClick={() => {
               if (timerRef.current) clearInterval(timerRef.current);
               pushSnapshot();
-              setPhase('review');
+              setPhase('steal');
             }}
           >
             End Round Early <ArrowRight size={16} />
@@ -1290,125 +1288,60 @@ export const GameArena: React.FC<GameArenaProps> = ({
     );
   }
 
-  // 4. POST-BUZZER REVIEW PHASE (Check off any answers the original team shouted that the reader missed BEFORE Steal!)
-  if (phase === 'review' && currentCard && currentTeam) {
-    return (
-      <div className="arena-container active-round-layout animate-fadein">
-        <div className="review-banner glass-panel">
-          <div className="steal-header-row">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button
-                className="btn-step-back"
-                onClick={handleStepBack}
-                title="Step back to timer"
-              >
-                <ArrowLeft size={13} /> Back
-              </button>
-              <div className="buzzer-pill">TIME&apos;S UP!</div>
-            </div>
-            <div
-              className="steal-team-label"
-              style={{ color: currentTeam.colorHex }}
-            >
-              <Headphones size={16} /> Check {currentTeam.name}&apos;s Answers
-            </div>
-          </div>
-
-          <h3 className="steal-topic-title">{currentCard.title}</h3>
-          <p className="steal-instructions">
-            <strong>Before any steal attempt:</strong> Tap any answers below
-            that <strong style={{ color: currentTeam.colorHex }}>{currentTeam.name}</strong>{' '}
-            shouted out during the round that the reader didn&apos;t hear or tap in time!
-          </p>
-        </div>
-
-        <div className="targets-grid">
-          {currentCard.items.map((item, idx) => {
-            const isGuessed = guessedIndices.includes(idx);
-            const isBonus = idx === bonusIndex;
-
-            return (
-              <button
-                key={idx}
-                className={`target-btn ${isGuessed ? 'target-checked' : ''} ${
-                  isBonus ? 'target-bonus' : ''
-                }`}
-                onClick={() => handleToggleTarget(idx)}
-              >
-                <div className="target-num">
-                  {isGuessed ? <Check size={18} strokeWidth={3} /> : idx + 1}
-                </div>
-                <div className="target-text">{item}</div>
-                {isBonus && (
-                  <div className="bonus-star-pill">
-                    <Sparkles size={13} /> +{settings.bonusPointsValue + 1}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        <div className="active-footer-bar">
-          <button
-            className="btn-end-game-early"
-            onClick={() => {
-              if (
-                window.confirm(
-                  'End the entire game now (including points earned this round) and crown the winner?'
-                )
-              ) {
-                handleEndGameEarly(true);
-              }
-            }}
-          >
-            <Flag size={13} /> End Game Early
-          </button>
-
-          <button
-            className="btn-primary-glow btn-finish-steal"
-            onClick={() => {
-              pushSnapshot();
-              if (settings.stealEnabled && guessedIndices.length < 10) {
-                setPhase('steal');
-              } else {
-                setPhase('summary');
-              }
-            }}
-          >
-            {settings.stealEnabled && guessedIndices.length < 10
-              ? `Next: ${nextTeam.name} Steal Chance`
-              : 'Complete & Score'}{' '}
-            <ArrowRight size={17} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // 5. STEAL PHASE (Opposing team gets a chance to snipe missed items)
+  // 4. UNIFIED POST-BUZZER WRAP-UP (Grace Check + Opposing Team Steal + Live Turn Score on ONE screen!)
   if (phase === 'steal' && currentCard && currentTeam) {
     const opposingTeams = activeTeams.filter((t) => t.id !== currentTeam.id);
     const activeStealTeam =
       activeTeams.find((t) => t.id === stealingTeamId) || opposingTeams[0];
+    const isSweep = guessedIndices.length === 10;
+    const canStealMore =
+      settings.stealEnabled &&
+      !isSweep &&
+      stolenIndices.length < settings.maxStealsPerCard;
 
     return (
       <div className="arena-container active-round-layout animate-fadein">
+        {renderScoreboardStrip(true)}
+
         <div className="steal-banner glass-panel">
           <div className="steal-header-row">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <button
-                className="btn-step-back"
-                onClick={handleStepBack}
-                title="Back to Answer Check"
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              <div
+                className="buzzer-pill"
+                style={{
+                  background: isSweep ? '#10B981' : '#EF4444'
+                }}
               >
-                <ArrowLeft size={13} /> Back
-              </button>
-              <div className="steal-badge-pill">STEAL ROUND</div>
+                {isSweep ? '🔥 10/10 OUTBURST SWEEP!' : "TIME'S UP!"}
+              </div>
+              <span
+                className="turn-points-inline-pill"
+                style={{
+                  backgroundColor: `${currentTeam.colorHex}22`,
+                  borderColor: currentTeam.colorHex,
+                  color: currentTeam.colorHex
+                }}
+              >
+                {currentTeam.name}: +{turnTotalForActiveTeam} pts
+                {bonusHit ? ` (incl. +${bonusPoints} Bonus)` : ''}
+              </span>
+              {stealPoints > 0 && activeStealTeam && (
+                <span
+                  className="turn-points-inline-pill"
+                  style={{
+                    backgroundColor: 'rgba(6, 182, 212, 0.18)',
+                    borderColor: '#06B6D4',
+                    color: '#06B6D4'
+                  }}
+                >
+                  <Flame size={12} /> {activeStealTeam.name}: +{stealPoints} Steal
+                </span>
+              )}
             </div>
-            {opposingTeams.length > 1 ? (
+
+            {settings.stealEnabled && !isSweep && opposingTeams.length > 1 && (
               <div className="steal-team-selector">
-                <span>Stealing:</span>
+                <span>Steal team:</span>
                 {opposingTeams.map((ot) => (
                   <button
                     key={ot.id}
@@ -1425,25 +1358,41 @@ export const GameArena: React.FC<GameArenaProps> = ({
                   </button>
                 ))}
               </div>
-            ) : (
-              <div
-                className="steal-team-label"
-                style={{ color: activeStealTeam?.colorHex }}
-              >
-                <Flame size={16} /> {activeStealTeam?.name} Steal Chance!
-              </div>
             )}
           </div>
 
           <h3 className="steal-topic-title">{currentCard.title}</h3>
           <p className="steal-instructions">
-            Give{' '}
-            <strong style={{ color: activeStealTeam?.colorHex }}>
-              {activeStealTeam?.name}
-            </strong>{' '}
-            one quick burst to guess up to{' '}
-            <strong>{settings.maxStealsPerCard}</strong> missed answers (+1 pt
-            each).
+            {isSweep ? (
+              <>
+                Incredible!{' '}
+                <strong style={{ color: currentTeam.colorHex }}>
+                  {currentTeam.name}
+                </strong>{' '}
+                cleared all 10 targets on the card!
+              </>
+            ) : settings.stealEnabled && activeStealTeam ? (
+              <>
+                Tap <strong>+Grace</strong> for any answers{' '}
+                <strong style={{ color: currentTeam.colorHex }}>
+                  {currentTeam.name}
+                </strong>{' '}
+                said that you missed, or tap a missed row for{' '}
+                <strong style={{ color: activeStealTeam.colorHex }}>
+                  {activeStealTeam.name}
+                </strong>{' '}
+                to <strong>Steal</strong> (up to {settings.maxStealsPerCard}).
+              </>
+            ) : (
+              <>
+                Tap any missed answers below that{' '}
+                <strong style={{ color: currentTeam.colorHex }}>
+                  {currentTeam.name}
+                </strong>{' '}
+                said before the buzzer (<strong>+Grace</strong>), then read the
+                remaining answers aloud!
+              </>
+            )}
           </p>
         </div>
 
@@ -1462,10 +1411,16 @@ export const GameArena: React.FC<GameArenaProps> = ({
                     : isStolen
                     ? 'target-stolen'
                     : 'target-missed-stealable'
-                }`}
+                } ${isBonus ? 'target-bonus' : ''}`}
                 onClick={() => {
-                  if (!isGuessed) {
+                  if (isGuessed) {
+                    handleToggleTarget(idx);
+                  } else if (isStolen) {
                     handleToggleStealTarget(idx);
+                  } else if (settings.stealEnabled) {
+                    handleToggleStealTarget(idx);
+                  } else {
+                    handleToggleTarget(idx);
                   }
                 }}
               >
@@ -1486,8 +1441,50 @@ export const GameArena: React.FC<GameArenaProps> = ({
                   </span>
                 )}
 
-                {isGuessed && <span className="guessed-tag">FOUND</span>}
-                {isStolen && <span className="stolen-tag">STOLEN +1</span>}
+                {isGuessed && (
+                  <span className="guessed-tag" title="Tap to undo">
+                    ✓ FOUND
+                  </span>
+                )}
+
+                {isStolen && (
+                  <span className="stolen-tag" title="Tap to undo steal">
+                    🔥 STOLEN +1
+                  </span>
+                )}
+
+                {!isGuessed && !isStolen && (
+                  <div
+                    className="post-turn-row-actions"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      className="btn-grace-toggle"
+                      onClick={() => handleToggleTarget(idx)}
+                      title={`Credit ${currentTeam.name} (if unheard or buzzer-beater)`}
+                    >
+                      +Grace
+                    </button>
+                    {settings.stealEnabled && (
+                      <button
+                        type="button"
+                        className={`btn-steal-toggle ${
+                          !canStealMore ? 'disabled' : ''
+                        }`}
+                        disabled={!canStealMore}
+                        onClick={() => handleToggleStealTarget(idx)}
+                        title={
+                          canStealMore
+                            ? `Award +1 Steal to ${activeStealTeam?.name || 'Opposing Team'}`
+                            : `Max ${settings.maxStealsPerCard} steals reached`
+                        }
+                      >
+                        +Steal
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -1495,146 +1492,12 @@ export const GameArena: React.FC<GameArenaProps> = ({
 
         <div className="active-footer-bar">
           <button
-            className="btn-end-game-early"
-            onClick={() => {
-              if (
-                window.confirm(
-                  'End the entire game now (including points earned this round) and crown the winner?'
-                )
-              ) {
-                handleEndGameEarly(true);
-              }
-            }}
+            className="btn-start-match"
+            onClick={handleCommitTurnAndAdvance}
           >
-            <Flag size={13} /> End Game Early
+            Save +{turnTotalForActiveTeam} Pts &amp; Next Team ({nextTeam.name}){' '}
+            <ArrowRight size={20} />
           </button>
-
-          <button
-            className="btn-primary-glow btn-finish-steal"
-            onClick={() => {
-              pushSnapshot();
-              setPhase('summary');
-            }}
-          >
-            Complete &amp; Score <ArrowRight size={17} />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // 6. TURN SUMMARY PHASE
-  if (phase === 'summary' && currentCard && currentTeam) {
-    const stealTeamObj = activeTeams.find((t) => t.id === stealingTeamId);
-
-    return (
-      <div className="arena-container animate-fadein">
-        {renderScoreboardStrip(true)}
-
-        <div className="summary-card glass-panel">
-          <div className="summary-header">
-            <div>
-              <span className="summary-kicker">
-                {guessedIndices.length === 10
-                  ? '🔥 PERFECT 10/10 OUTBURST!'
-                  : `TURN COMPLETE • ${guessedIndices.length}/10 FOUND`}
-              </span>
-              <h2 className="summary-title">{currentCard.title}</h2>
-            </div>
-
-            <div
-              className="turn-points-badge"
-              style={{
-                backgroundColor: `${currentTeam.colorHex}25`,
-                borderColor: currentTeam.colorHex,
-                color: currentTeam.colorHex
-              }}
-            >
-              +{turnTotalForActiveTeam} PTS
-            </div>
-          </div>
-
-          <div className="points-breakdown-row">
-            <span className="breakdown-pill">
-              <CheckCircle2 size={14} /> {basePoints} Targets Found (+
-              {basePoints})
-            </span>
-            {bonusHit && (
-              <span className="breakdown-pill bonus-pill">
-                <Sparkles size={14} /> Bonus Target Hit! (+{bonusPoints} extra)
-              </span>
-            )}
-            {stealPoints > 0 && stealTeamObj && (
-              <span
-                className="breakdown-pill steal-pill"
-                style={{ borderColor: stealTeamObj.colorHex }}
-              >
-                <Flame size={14} /> {stealTeamObj.name} Stole {stealPoints} (+
-                {stealPoints})
-              </span>
-            )}
-          </div>
-
-          <div className="summary-targets-list">
-            {currentCard.items.map((item, idx) => {
-              const isGuessed = guessedIndices.includes(idx);
-              const isStolen = stolenIndices.includes(idx);
-              const isBonus = idx === bonusIndex;
-
-              return (
-                <div
-                  key={idx}
-                  className={`summary-item-row ${
-                    isGuessed
-                      ? 'row-guessed'
-                      : isStolen
-                      ? 'row-stolen'
-                      : 'row-missed'
-                  }`}
-                  onClick={() => handleToggleTarget(idx)}
-                  title="Tap to toggle if an answer needs adjustment"
-                >
-                  <span className="row-index">{idx + 1}.</span>
-                  <span className="row-text">{item}</span>
-                  {isBonus && (
-                    <span className="row-badge bonus">
-                      <Sparkles size={11} /> BONUS
-                    </span>
-                  )}
-                  {isGuessed && <span className="row-badge hit">FOUND</span>}
-                  {isStolen && <span className="row-badge stolen">STOLEN</span>}
-                  {!isGuessed && !isStolen && (
-                    <span className="row-badge missed">MISSED</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="summary-actions-row">
-            <button
-              className="btn-start-match"
-              onClick={handleCommitTurnAndAdvance}
-            >
-              Save Points &amp; Next Team ({nextTeam.name}){' '}
-              <ArrowRight size={20} />
-            </button>
-
-            <button
-              className="btn-end-game-early-wide"
-              onClick={() => {
-                if (
-                  window.confirm(
-                    'Save this round and finish the match right now?'
-                  )
-                ) {
-                  handleEndGameEarly(true);
-                }
-              }}
-            >
-              <Flag size={15} /> Save Round &amp; End Game Now
-            </button>
-          </div>
         </div>
       </div>
     );

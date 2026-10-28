@@ -104,9 +104,7 @@ export type GamePhase =
   | 'lobby'           // Selecting teams, rules, starting match
   | 'ready'           // Hand device to reader/host, preview topic (option to pass/skip before timer)
   | 'active'          // 60s countdown! Reader taps off items as active team shouts them
-  | 'review'          // Post-buzzer check: verify all answers the original team shouted that reader missed
-  | 'steal'           // Next team gets a chance to steal missed items
-  | 'summary'         // Turn summary & scoreboard before next team's turn
+  | 'steal'           // Unified Post-Buzzer Screen: Grace (+Grace for missed/unheard answers) + Steal + Score!
   | 'gameover';       // Match complete! Winner celebration & stats
 
 export interface GameSnapshot {
