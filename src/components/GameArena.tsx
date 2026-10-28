@@ -208,15 +208,51 @@ export const GameArena: React.FC<GameArenaProps> = ({
     });
   };
 
-  // Draw a random card
+  // Track recently drawn decks so consecutive turns always rotate across different subjects/themes!
+  const recentDecksRef = useRef<string[]>([]);
+
+  // Smart Diversity Card Drawer:
+  // 1. Groups available unplayed cards by deck
+  // 2. Prioritizes decks that haven't been drawn in the last few turns so you never get 3 "Everyday" or 3 "Food" cards in a row
+  // 3. Picks a uniform random deck first, then a random card inside that deck (so massive decks don't drown out smaller decks)
   const drawNextCard = (excludeId?: string): CategoryCard => {
     let pool = unplayedPool.filter((c) => c.id !== excludeId);
     if (pool.length === 0) {
       pool = deckFilteredCards.filter((c) => c.id !== excludeId);
       if (pool.length === 0) pool = availableCards;
     }
-    const randomIndex = Math.floor(Math.random() * pool.length);
-    return pool[randomIndex];
+
+    // Group candidate cards by deck
+    const byDeck = new Map<string, CategoryCard[]>();
+    for (const card of pool) {
+      const list = byDeck.get(card.deck) || [];
+      list.push(card);
+      byDeck.set(card.deck, list);
+    }
+
+    const availableDeckNames = Array.from(byDeck.keys());
+    if (availableDeckNames.length === 0) {
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    // Avoid decks used in the last N turns (up to availableDeckNames.length - 1)
+    const maxAvoid = Math.min(3, availableDeckNames.length - 1);
+    const recentToAvoid = recentDecksRef.current.slice(-maxAvoid);
+    let candidateDecks = availableDeckNames.filter(
+      (d) => !recentToAvoid.includes(d)
+    );
+    if (candidateDecks.length === 0) {
+      candidateDecks = availableDeckNames;
+    }
+
+    const chosenDeck =
+      candidateDecks[Math.floor(Math.random() * candidateDecks.length)];
+    const cardsInChosenDeck = byDeck.get(chosenDeck)!;
+    const chosenCard =
+      cardsInChosenDeck[Math.floor(Math.random() * cardsInChosenDeck.length)];
+
+    recentDecksRef.current = [...recentDecksRef.current.slice(-6), chosenDeck];
+    return chosenCard;
   };
 
   // Start a brand new Match

@@ -1,18 +1,21 @@
 import { CategoryCard, DeckName, MetaCategoryPreset } from '../types/game';
 
 export const DECK_CATEGORIES: readonly DeckName[] = [
+  'Science & Tech',
+  'History & Mythology',
+  'Wordplay & Quirky',
   'Everyday',
   'Food & Drink',
   'Classic',
   'Pop Culture',
   'Geography & Nature',
+  'Sports & Games',
+  'Music & Hits',
   'Kids Mode',
   'Boomers (50s-70s)',
   'Gen X (80s-90s)',
   'Millennials (90s-00s)',
   'Gen Z & Alpha',
-  'Sports & Games',
-  'Music & Hits',
   'Custom'
 ] as const;
 
@@ -20,9 +23,23 @@ export const META_CATEGORY_PRESETS: MetaCategoryPreset[] = [
   {
     id: 'all-party',
     name: 'All-Ages Party Mix',
-    tagline: 'Every deck enabled for a chaotic, multi-generational showdown',
+    tagline: 'Balanced draw across Science, History, Quirky, Pop Culture & Everyday',
     badgeColor: '#F43F5E',
     decks: [...DECK_CATEGORIES]
+  },
+  {
+    id: 'brainy-trivia',
+    name: 'Science, History & Geo',
+    tagline: 'Discoveries, empires, mythology, space, nature & world wonders',
+    badgeColor: '#3B82F6',
+    decks: ['Science & Tech', 'History & Mythology', 'Geography & Nature']
+  },
+  {
+    id: 'creative-wordplay',
+    name: 'Creative & Quirky Mix',
+    tagline: 'Lateral thinking, wordplay, classic sets & funny human behavior',
+    badgeColor: '#EC4899',
+    decks: ['Wordplay & Quirky', 'Classic', 'Everyday']
   },
   {
     id: 'kids-junior',
@@ -46,23 +63,9 @@ export const META_CATEGORY_PRESETS: MetaCategoryPreset[] = [
   {
     id: 'retro-throwback',
     name: 'Retro Throwback (50s–90s)',
-    tagline: 'Boomers & Gen X classics, vinyl, arcades & golden-age TV',
+    tagline: 'Boomers & Gen X classics, history, vinyl, arcades & golden-age TV',
     badgeColor: '#8B5CF6',
-    decks: ['Boomers (50s-70s)', 'Gen X (80s-90s)', 'Classic']
-  },
-  {
-    id: 'modern-pop',
-    name: '2000s to Today',
-    tagline: 'Millennial nostalgia, Gen Z viral hits & modern pop culture',
-    badgeColor: '#06B6D4',
-    decks: ['Millennials (90s-00s)', 'Gen Z & Alpha', 'Pop Culture']
-  },
-  {
-    id: 'classic-board',
-    name: 'Classic Outburst',
-    tagline: 'Everyday life, food, geography & timeless board game topics',
-    badgeColor: '#EC4899',
-    decks: ['Everyday', 'Food & Drink', 'Classic', 'Geography & Nature']
+    decks: ['Boomers (50s-70s)', 'Gen X (80s-90s)', 'History & Mythology', 'Classic']
   }
 ];
 

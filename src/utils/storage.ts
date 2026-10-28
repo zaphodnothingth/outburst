@@ -4,6 +4,7 @@
 import { CategoryCard, Team, MatchRecord, GameSettings } from '../types/game';
 import { STARTER_CARDS, DECK_CATEGORIES } from '../data/starterCards';
 import { EXPANSION_CARDS } from '../data/expansionCards';
+import { VARIETY_CARDS } from '../data/varietyCards';
 
 const DB_NAME = 'OutburstGameDB';
 const DB_VERSION = 1;
@@ -161,6 +162,21 @@ export function loadInitialData(): PersistedData {
     localStorage.setItem(LS_KEYS.TEAMS, JSON.stringify(DEFAULT_TEAMS));
   }
 
+  const savedSettings = safeParse<Partial<GameSettings>>(
+    localStorage.getItem(LS_KEYS.SETTINGS),
+    {}
+  );
+
+  // If user had the original 6 decks or all-party preset, automatically include new decks (Science, History, Quirky, Generations, etc.)
+  let mergedDecks = savedSettings.selectedDecks || [...DECK_CATEGORIES];
+  if (
+    !savedSettings.activeMetaPresetId ||
+    savedSettings.activeMetaPresetId === 'all-party' ||
+    mergedDecks.length === 6
+  ) {
+    mergedDecks = Array.from(new Set([...mergedDecks, ...DECK_CATEGORIES]));
+  }
+
   return {
     teams: loadedTeams,
     activeTeamIds: safeParse<string[]>(
@@ -181,10 +197,8 @@ export function loadInitialData(): PersistedData {
     ),
     settings: {
       ...DEFAULT_SETTINGS,
-      ...safeParse<Partial<GameSettings>>(
-        localStorage.getItem(LS_KEYS.SETTINGS),
-        {}
-      )
+      ...savedSettings,
+      selectedDecks: mergedDecks
     }
   };
 }
@@ -222,7 +236,7 @@ export function saveSettings(settings: GameSettings) {
 export function getAllAvailableCards(
   customCards: CategoryCard[]
 ): CategoryCard[] {
-  return [...customCards, ...STARTER_CARDS, ...EXPANSION_CARDS];
+  return [...customCards, ...VARIETY_CARDS, ...STARTER_CARDS, ...EXPANSION_CARDS];
 }
 
 export function exportFullBackup(): string {

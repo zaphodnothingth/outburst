@@ -1088,38 +1088,38 @@ export const EXPANSION_CARDS: CategoryCard[] = [
   },
   {
     id: 'idea-every-03',
-    title: "Things in a Doctor's Waiting Room",
+    title: 'Reasons Someone Pulls an All-Nighter',
     deck: 'Everyday',
     difficulty: 'Easy',
     items: [
-      'Old Magazines',
-      'Sign-In Clipboard & Pen on a String',
-      'Hand Sanitizer Pump',
-      'Box of Tissues',
-      'TV Playing Daytime Talk or HGTV',
-      'Row of Padded Chairs',
-      'Sliding Glass Reception Window',
-      'Kids\' Toy Table / Bead Maze',
-      'Health Pamphlets & Posters',
-      'Aquarium / Potted Fake Plant'
+      'Cramming for a Final Exam / Term Paper',
+      'Newborn Baby Crying',
+      'Red-Eye Flight / Early Morning Travel',
+      'Binge-Watching a TV Show or Video Game',
+      'Working a Night Shift (ER / Nurse / Police)',
+      'Partying / New Year\'s Eve / Vegas',
+      'Insomnia / Too Much Coffee',
+      'Black Friday / Concert Ticket Line',
+      'Finishing a Work Deadline / Tax Season',
+      'Slumber Party / Sleepover'
     ]
   },
   {
     id: 'idea-every-04',
-    title: 'Things Found in a Garage or Tool Shed',
+    title: 'White Lies People Tell Almost Every Week',
     deck: 'Everyday',
     difficulty: 'Easy',
     items: [
-      'Lawnmower / Weed Whacker',
-      'Hammer & Nails',
-      'Screwdriver / Power Drill',
-      'WD-40 & Duct Tape',
-      'Extension Cord',
-      'Ladder',
-      'Shop Vac / Broom',
-      'Bicycles',
-      'Old Paint Cans',
-      'Rakes & Shovels'
+      '"I\'m On My Way!" (Still at Home)',
+      '"I\'ve Read and Agree to the Terms & Conditions"',
+      '"Sorry, I Just Saw Your Text!"',
+      '"No, You Don\'t Look Bad in That!"',
+      '"I\'m Fine / Just Tired"',
+      '"We Should Totally Get Lunch Soon!"',
+      '"My Phone Died / Bad Service"',
+      '"I Was Just About to Call You!"',
+      '"Just Having One More Episode / One Drink"',
+      '"Traffic Was Crazy!"'
     ]
   },
   {
@@ -1196,20 +1196,20 @@ export const EXPANSION_CARDS: CategoryCard[] = [
   },
   {
     id: 'idea-every-09',
-    title: 'Items in a Medicine Cabinet',
+    title: 'Ways People Try to Cure the Hiccups',
     deck: 'Everyday',
     difficulty: 'Easy',
     items: [
-      'Band-Aids / Adhesive Bandages',
-      'Ibuprofen / Tylenol / Aspirin',
-      'Toothpaste & Dental Floss',
-      'Tweezers & Nail Clippers',
-      'Thermometer',
-      'Cough Drops / NyQuil',
-      'Neosporin / Antiseptic Cream',
-      'Cotton Swabs (Q-Tips)',
-      'Antacids (Tums / Pepto-Bismol)',
-      'Prescription Pill Bottles'
+      'Hold Your Breath',
+      'Drink a Glass of Water Upside Down',
+      'Have Someone Scare / Startle You',
+      'Eat a Spoonful of Sugar or Peanut Butter',
+      'Breathe into a Paper Bag',
+      'Pull on Your Tongue / Plug Your Ears',
+      'Gargle Ice Water',
+      'Drink Through a Paper Towel',
+      'Swallow 9 Small Sips in a Row',
+      'Bite on a Lemon Wedge'
     ]
   },
   {
@@ -1492,20 +1492,38 @@ export const EXPANSION_CARDS: CategoryCard[] = [
   },
   {
     id: 'idea-sports-03',
-    title: 'Ways to Score or Penalties in Football',
+    title: 'Ways a Player Gets On Base in Baseball (Or Out!)',
     deck: 'Sports & Games',
     difficulty: 'Easy',
     items: [
-      'Touchdown (6 pts)',
-      'Field Goal (3 pts)',
-      'Extra Point (PAT)',
-      'Two-Point Conversion',
-      'Safety (2 pts)',
-      'Holding Penalty',
+      'Single / Base Hit',
+      'Double / Triple',
+      'Home Run',
+      'Walk (Base on Balls)',
+      'Hit by Pitch (HBP)',
+      'Fielder\'s Choice / Fielding Error',
+      'Dropped Third Strike',
+      'Catcher\'s Interference',
+      'Pinch Runner',
+      'Intentional Walk'
+    ]
+  },
+  {
+    id: 'idea-sports-03b',
+    title: 'Common Penalties in American Football (NFL)',
+    deck: 'Sports & Games',
+    difficulty: 'Easy',
+    items: [
+      'Offensive / Defensive Holding',
       'Pass Interference',
-      'False Start / Offsides',
-      'Roughing the Passer',
-      'Delay of Game / Facemask'
+      'False Start',
+      'Offsides / Encroachment / Neutral Zone Infringement',
+      'Delay of Game',
+      'Roughing the Passer / Kicker',
+      'Facemask',
+      'Unnecessary Roughness / Personal Foul',
+      'Illegal Block in the Back / Clipping',
+      'Intentional Grounding / Too Many Men on Field'
     ]
   },
   {
