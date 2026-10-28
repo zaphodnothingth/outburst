@@ -839,5 +839,365 @@ export const VARIETY_CARDS: CategoryCard[] = [
       '"Pick a Card, Any Card"',
       'Harry Houdini / David Copperfield'
     ]
+  },
+  {
+    id: 'quirk-17',
+    title: 'Things That Have Eyes (But Cannot See!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Potato',
+      'A Sewing Needle',
+      'A Hurricane / Storm',
+      'A Peacock\'s Tail Feathers',
+      'Hook and Eye Fastener (Clothing)',
+      'A Shoe (Shoelace Eyelets)',
+      'A Target (Bullseye)',
+      'Dice (Snake Eyes)',
+      'Swiss Cheese (The Holes)',
+      'A Stove Burner / Electric Range'
+    ]
+  },
+  {
+    id: 'quirk-18',
+    title: 'Things That Have Hands or Arms (ButAren\'t Alive!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Clock or Watch (Minute & Hour Hands)',
+      'An Armchair / Sofa',
+      'A Mannequin / Scarecrow',
+      'A Card Game (A Poker Hand)',
+      'A Record Player (Tonearm)',
+      'A Coat Rack / Chandelier',
+      'A Crane / Excavator',
+      'A Parking Garage Toll Gate',
+      'A Cactus (Saguaro Arms)',
+      'Slot Machine ("One-Armed Bandit")'
+    ]
+  },
+  {
+    id: 'quirk-19',
+    title: 'Things That Have a Neck or a Head (Besides People & Animals!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Guitar / Violin',
+      'A Beer or Wine Bottle',
+      'A Shirt / Sweater (Crewneck / V-Neck)',
+      'A Head of Lettuce or Cabbage',
+      'A Hammer or Nail',
+      'A Coin (Heads or Tails)',
+      'A Drum (Drumhead)',
+      'A Shower (Showerhead)',
+      'A Bed (Headboard)',
+      'A Golf Club / Matchstick'
+    ]
+  },
+  {
+    id: 'quirk-20',
+    title: 'Things That Have Legs or Feet (But Never Walk!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Table / Desk',
+      'A Chair / Barstool',
+      'A Pair of Pants / Jeans',
+      'A Camera Tripod / Easel',
+      'A Bed Frame / Clawfoot Bathtub',
+      'A Ruler / Tape Measure (12 Inches)',
+      'A Grand Piano',
+      'A Relay Race or Flight (First Leg)',
+      'A Wine Glass ("Legs" on the Glass)',
+      'Eyeglasses (The Arms / Temples)'
+    ]
+  },
+  {
+    id: 'quirk-21',
+    title: 'Things That Have a Tongue, Lip, or Ear (Without a Face!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Medium',
+    items: [
+      'A Shoe / Sneaker (The Tongue)',
+      'An Ear of Corn',
+      'A Coffee Mug or Pitcher (The Lip)',
+      'A Book Page (Dog-Eared Corner)',
+      'A Bell (The Clapper / Tongue)',
+      'A Trailer / Wagon (The Hitch Tongue)',
+      'A Volcano Crater or Canyon Rim (The Lip)',
+      'A SkateboardRamp (The Lip)',
+      'Mother-in-Law\'s Tongue (Houseplant)',
+      'A Golf Hole (Lipping Out a Putt)'
+    ]
+  },
+  {
+    id: 'quirk-22',
+    title: 'Things That "Run" (Without Any Legs!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'Your Nose (During a Cold)',
+      'A Refrigerator / Washing Machine',
+      'A Car Engine / Motor',
+      'A Faucet / Running Water / River',
+      'Nylon Stockings / Pantyhose (A Run)',
+      'Mascara / Wet Ink / Dye in the Wash',
+      'Time / A Clock ("Time Is Running Out")',
+      'A Computer Program / App',
+      'A Politician (Running for Office)',
+      'A Broadway Show / Movie Streak'
+    ]
+  },
+  {
+    id: 'quirk-23',
+    title: 'Things You Can "Catch" (Other Than a Ball!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Cold / The Flu',
+      'A Flight / Train / Bus',
+      'A Fish',
+      'Your Breath',
+      'Some Z\'s (A Nap)',
+      'A Wave (Surfing)',
+      'Feelings / Falling in Love',
+      'Someone\'s Eye / Attention',
+      'Fire ("Catch on Fire")',
+      'A Break / A Thief (Red-Handed)'
+    ]
+  },
+  {
+    id: 'quirk-24',
+    title: 'Things You Can "Break" (Without Dropping Anything!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Promise / A Rule / The Law',
+      'A Bad Habit',
+      'A World Record',
+      'Someone\'s Heart',
+      'The Ice (Starting a Conversation)',
+      'Big News ("Breaking News")',
+      'A Tie Score / A Losing Streak',
+      'A Secret Code / Password',
+      'The Silence / Sound Barrier',
+      'A $20 or $100 Bill (Making Change)'
+    ]
+  },
+  {
+    id: 'quirk-25',
+    title: 'Things That Have Keys (That Don\'t Unlock Doors!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Piano / Organ',
+      'A Computer Keyboard / Typewriter',
+      'A Map or Chart (The Legend / Key)',
+      'A Piece of Music (Key of C / Off-Key)',
+      'The Florida Keys (Islands)',
+      'A Basketball Court (The Key / Free-Throw Lane)',
+      'A Math or School Test (Answer Key)',
+      'A Secret Cipher / Cryptography',
+      'A Saxophone / Flute / Clarinet',
+      'A Calculator / Cash Register'
+    ]
+  },
+  {
+    id: 'quirk-26',
+    title: 'Things That Have Rings (Besides Fingers!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Tree Trunk (Growth Rings)',
+      'Planet Saturn',
+      'The Olympic Games Flag (5 Rings)',
+      'A Three-Ring Circus',
+      'A Boxing or Wrestling Arena',
+      'A Bathtub or Coffee Table (Water Stain Ring)',
+      'A Telephone / Doorbell',
+      'Onions (Fried Onion Rings)',
+      'A Keychain / 3-Ring Binder',
+      'A Bull\'s Nose / Curtain Rod'
+    ]
+  },
+  {
+    id: 'quirk-27',
+    title: 'Things That Get Shorter the Longer They Live',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Burning Candle',
+      'A Wooden Pencil',
+      'A Bar of Soap',
+      'Sidewalk Chalk',
+      'An Eraser',
+      'A Stick of Deodorant / Lip Balm',
+      'An Ice Cube / Icicle in the Sun',
+      'A Roll of Toilet Paper / Tape',
+      'A Cigarette / Cigar / Incense Stick',
+      'Remaining Time / A Countdown'
+    ]
+  },
+  {
+    id: 'quirk-28',
+    title: 'Things That Are Harder to Put Back In Than Take Out',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'Toothpaste in the Tube',
+      'A Sleeping Bag into Its Tiny Stuff Sack',
+      'A Camping Tent into Its Original Bag',
+      'A Folding Road Map',
+      'An Artificial Christmas Tree in the Box',
+      'An Inflatable Air Mattress / Pool Float',
+      'Jack-in-the-Box / Can of Snakes',
+      'AFitted Sheet / Duvet Cover',
+      'Words Spoken in Anger / A Secret',
+      'A Genie in a Lamp / Cat in a Carrier'
+    ]
+  },
+  {
+    id: 'quirk-29',
+    title: 'Things People Do When Stuck in an Awkward Elevator',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'Stare Intently at the Floor Numbers Lighting Up',
+      'Pull Out Phone (With Zero Signal)',
+      'Repeatedly Mash the "Door Close" Button',
+      'Talk About the Weather',
+      'Clear Throat / Check Watch',
+      'Avoid Eye Contact at All Costs',
+      'Stand Facing the Door Like Statues',
+      'Look at Self in the Mirror / Shiny Wall',
+      'Hold Breath If Someone Wears Strong Perfume',
+      'Say "Which Floor?" to Someone Walking In'
+    ]
+  },
+  {
+    id: 'quirk-30',
+    title: 'Things That Have Stripes',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Zebra',
+      'A Tiger',
+      'The American Flag (13 Stripes)',
+      'A Candy Cane',
+      'A Sports Referee Shirt (Foot Locker)',
+      'A Barber Shop Pole',
+      'A Bumblebee',
+      'A Pedestrian Crosswalk',
+      'Where\'s Waldo\'s Shirt / Classic Prison Uniform',
+      'A Skunk / Chipmunk / Clownfish'
+    ]
+  },
+  {
+    id: 'quirk-31',
+    title: 'Things That Have Shells',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'Turtles & Tortoises',
+      'Snails & Hermit Crabs',
+      'Clams, Oysters & Scallops (Seashells)',
+      'Eggs',
+      'Hard-Shell Tacos',
+      'Walnuts, Peanuts & Pistachios',
+      'Lobsters & Shrimp',
+      'Pasta (Conchiglie / Stuffed Shells)',
+      'M&M\'s Candy ("Melts in Your Mouth")',
+      'Shotgun Shells / Artillery / Shell Gas Station'
+    ]
+  },
+  {
+    id: 'quirk-32',
+    title: 'Things That Have Wings (But Don\'t Fly in the Sky!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'Penguins / Ostriches / Emus',
+      'Buffalo Hot Wings (Chicken Wings)',
+      'A Hospital, Museum, or White House (West Wing)',
+      'A Theater Stage ("Waiting in the Wings")',
+      'Maxi Pads',
+      'Wing Nuts (Hardware Screws)',
+      'An Ice Hockey Team (Left Wing / Right Wing)',
+      'Paul McCartney\'s Band (Wings)',
+      'Wingtip Dress Shoes / Wingback Chair',
+      'A Race Car Spoiler'
+    ]
+  },
+  {
+    id: 'quirk-33',
+    title: 'Words Commonly Used After "Black" or "Golden"',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'Black Friday',
+      'Black Hole (Space)',
+      'Black Widow / Black Panther',
+      'Black Sheep / Blackjack',
+      'Black Tie / Black Market / Black Box',
+      'Golden Retriever',
+      'Golden Gate Bridge',
+      'The Golden Girls',
+      'Golden Rule / Golden Ticket (Willy Wonka)',
+      'Golden Goose / Golden Globes'
+    ]
+  },
+  {
+    id: 'quirk-34',
+    title: 'Things You Only Use When Something Goes Wrong',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'A Fire Extinguisher',
+      'A Spare Tire / Car Jack / Jumper Cables',
+      'A Plunger',
+      'A First-Aid Kit / Band-Aid / EpiPen',
+      'A Parachute / Ejection Seat',
+      'An Airbag',
+      'A Pencil Eraser / White-Out / Ctrl+Z',
+      'Car or Home Insurance',
+      'A Life Jacket / Life Preserver Ring',
+      'A Bail Bondsman / Tow Truck'
+    ]
+  },
+  {
+    id: 'quirk-35',
+    title: 'Things That Come in Cans (Besides Soda & Soup!)',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'Tuna Fish / Sardines',
+      'Shaving Cream / Hairspray',
+      'Spray Paint / WD-40',
+      'Tennis Balls (Pressurized Can)',
+      'Pringles Potato Chips',
+      'Pillsbury Crescent Rolls / Biscuits (Pop!)',
+      'Dog & Cat Food',
+      'Cranberry Sauce (With the Can Ridges)',
+      'Whipped Cream (Reddi-wip)',
+      'Play-Doh / Silly String / Beer'
+    ]
+  },
+  {
+    id: 'quirk-36',
+    title: 'Famous fictional Duos & Sidekicks',
+    deck: 'Wordplay & Quirky',
+    difficulty: 'Easy',
+    items: [
+      'Batman & Robin',
+      'Sherlock Holmes & Dr. Watson',
+      'Han Solo & Chewbacca',
+      'Woody & Buzz Lightyear',
+      'Shrek & Donkey',
+      'Mario & Luigi',
+      'Bert & Ernie',
+      'Tom & Jerry / Scooby & Shaggy',
+      'SpongeBob & Patrick',
+      'Thelma & Louise / Calvin & Hobbes'
+    ]
   }
 ];
